@@ -748,8 +748,9 @@ void SimControl::run() {
         create_rtree();
         set_autonomy_contacts();
         if (t == t0_) {
-            end_condition_interaction = run_interaction_detection();
+            if (run_interaction_detection()) break;
         }
+
         if (!run_entities()) {
             std::cout << "Exiting due to plugin request." << std::endl;
             break;

@@ -30,6 +30,7 @@
  *
  */
 
+#include <scrimmage/common/Utilities.h>
 #include <scrimmage/math/State.h>
 #include <scrimmage/entity/Entity.h>
 #include <scrimmage/parse/ParseUtils.h>
@@ -41,14 +42,13 @@
 
 REGISTER_PLUGIN(scrimmage::Controller, scrimmage::controller::JSBSimModelControllerDirect, JSBSimModelControllerDirect_plugin)
 
+using ang = scrimmage::Angles;
+
 namespace scrimmage {
 namespace controller {
 
-namespace sc = scrimmage;
-using ang = scrimmage::Angles;
-
 void JSBSimModelControllerDirect::init(std::map<std::string, std::string> &params) {
-    use_pitch_ = sc::str2bool(params.at("use_pitch"));
+    use_pitch_ = str2bool(params.at("use_pitch"));
 }
 
 bool JSBSimModelControllerDirect::step(double t, double dt) {

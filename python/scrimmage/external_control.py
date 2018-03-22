@@ -94,12 +94,14 @@ class ScrimmageEnv(gym.Env):
         self.server_thread.start()
 
         # startup headless version of scrimmage to get the environment
-        self.queues['action'].put(ExternalControl_pb2.Action(done=True))
         self.scrimmage_process = self._start_scrimmage(False, True)
 
         envs = self.queues['env'].get()
         self.num_actors = len(envs.envs)
+
+        self._clear_queues()
         self._terminate_scrimmage()
+        self._clear_queues()
 
         if self.num_actors == 1:
             self.action_space, self.observation_space, self.reward_range = \
@@ -112,10 +114,10 @@ class ScrimmageEnv(gym.Env):
                         self._env.action_spaces.params.extend([p])
                     for p in e.observation_spaces.params:
                         self._env.observation_spaces.params.extend([p])
+                lvdb.set_trace()
                 self.reward_range = \
                     (sum([e.min_reward for e in envs.envs]),
                      sum([e.max_reward for e in envs.envs]))
-                lvdb.set_trace()
                 self.action_space, self.observation_space = \
                     self._create_spaces(self._env)[:2]
             else:
@@ -235,7 +237,6 @@ class ScrimmageEnv(gym.Env):
                 ["scrimmage", self.temp_mission_file]
         else:
             cmd = ["scrimmage", self.temp_mission_file]
-        cmd = ['gdb', '-x', '/home/esquires3/scrimmage/.gdbinit', '-f', 'scrimmage'] 
         cmd = ["scrimmage", self.temp_mission_file]
         # print(cmd)
         return subprocess.Popen(cmd)
@@ -262,6 +263,7 @@ class ScrimmageEnv(gym.Env):
         try:
             res.action_results
         except AttributeError:
+            print('returning error')
             return None, None, True, {}
 
         if self.num_actors == 1:
@@ -287,16 +289,18 @@ class ScrimmageEnv(gym.Env):
         shutdown the network to the autonomy in addition to sending a
         sigint.
         """
+        self.scrimmage_process.poll()
         if self.scrimmage_process.returncode is None:
             try:
                 os.remove(self.temp_mission_file)
             except OSError:
                 pass
 
+            print('putting done on queue')
             self.queues['action'].put(ExternalControl_pb2.Actions(done=True))
 
             try:
-                self.scrimmage_process.kill()
+                self.scrimmage_process.terminate()
                 self.scrimmage_process.poll()
                 while self.scrimmage_process.returncode is None:
                     self.scrimmage_process.poll()
@@ -399,7 +403,6 @@ def main():
     # Initizialized variables
     num_actors = 1
     port_offset = 1
-    queue_names = ['env', 'action', 'action_response']
     ip = "localhost"
     queues = []
     server_threads = []
@@ -409,7 +412,8 @@ def main():
     for i in range(num_actors):
         port = int(port) + i * port_offset
         address = ip + ":" + str(port)
-        queues.append({s: queue.Queue() for s in queue_names})
+        queues.append(
+            {s: queue.Queue() for s in ['env', 'action', 'action_response']})
         server_threads.append(
             ServerThread(queues[-1], address))
         server_threads[-1].start()

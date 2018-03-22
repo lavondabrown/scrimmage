@@ -91,8 +91,9 @@ bool ExternalControlInteraction::step_entity_interaction(std::list<sc::EntityPtr
     }
 
     // get reward/obs/done
-    auto actions = send_action_result(t, dt, false);
-    if (!actions) return false;
+    // terminate is supposed to occur after the first state is experienced
+    auto actions = send_action_result(t, dt, false, t != 0);
+    if (!actions || actions->done()) return false;
 
     // receive action
     handle_action(*actions);
@@ -106,7 +107,7 @@ void ExternalControlInteraction::handle_action(scrimmage_proto::Actions &actions
 }
 
 boost::optional<scrimmage_proto::Actions>
-ExternalControlInteraction::send_action_result(double t, double dt, bool done) {
+ExternalControlInteraction::send_action_result(double t, double dt, bool done, bool allow_done) {
     sp::ActionResults action_results;
 
     for (auto &a : ext_ctrl_vec_) {
@@ -115,8 +116,8 @@ ExternalControlInteraction::send_action_result(double t, double dt, bool done) {
         std::tie(temp_done, temp_reward) = a->calc_reward(t, dt);
         sp::ActionResult *ar = action_results.add_action_results();
         *ar = a->get_observation(t);
-        ar->set_done(done || temp_done);
-        ar->set_reward(temp_reward);
+        ar->set_done(allow_done ? (done || temp_done) : false);
+        ar->set_reward(allow_done ? temp_reward : 0);
     }
 
     return external_control_client_->send_action_results(action_results);
@@ -132,7 +133,7 @@ bool ExternalControlInteraction::send_env() {
 }
 
 void ExternalControlInteraction::close(double t) {
-    send_action_result(t, 0, true);
+    send_action_result(t, 0, true, true);
 }
 
 } // namespace interaction
