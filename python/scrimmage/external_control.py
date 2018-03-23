@@ -11,7 +11,6 @@ import sys
 import xml.etree.ElementTree as ET
 import importlib
 import argparse
-import itertools
 import platform
 
 from concurrent import futures
@@ -114,7 +113,6 @@ class ScrimmageEnv(gym.Env):
                         self._env.action_spaces.params.extend([p])
                     for p in e.observation_spaces.params:
                         self._env.observation_spaces.params.extend([p])
-                lvdb.set_trace()
                 self.reward_range = \
                     (sum([e.min_reward for e in envs.envs]),
                      sum([e.max_reward for e in envs.envs]))
@@ -187,7 +185,7 @@ class ScrimmageEnv(gym.Env):
         self.queues['action'].put(actions_pb)
         return self._return_action_result()
 
-    def render(self, mode='human', close=False):
+    def _render(self, mode='human', close=False):
         """Ignores a render call but avoids an exception.
 
         If a user wants the environment rendered then the user should
@@ -271,14 +269,18 @@ class ScrimmageEnv(gym.Env):
             rew = res.action_results[0].reward
             done = res.action_results[0].done
         else:
-            obs = [np.array(r.observations.value) for r in res.action_results]
-            rew = [r.reward for r in res.action_results][0]
-            done = [r.done for r in res.action_results][0]
+            rew = [r.reward for r in res.action_results]
+            done = [r.done for r in res.action_results]
 
             if self.combine_actors:
-                obs = list(itertools.chain(obs))
+                obs = np.array([r.observations.value
+                                for r in res.action_results])
                 rew = sum(rew)
                 done = any(done)
+            else:
+                obs = [np.array(r.observations.value)
+                       for r in res.action_results]
+
 
         return obs, rew, done, {}
 
@@ -296,7 +298,6 @@ class ScrimmageEnv(gym.Env):
             except OSError:
                 pass
 
-            print('putting done on queue')
             self.queues['action'].put(ExternalControl_pb2.Actions(done=True))
 
             try:
@@ -363,6 +364,7 @@ def _create_tuple_space(space_params):
     if len(discrete_extrema) == 1 and discrete_extrema[0][0] == 0:
         discrete_space = gym.spaces.Discrete(discrete_extrema[0][1] + 1)
     else:
+        discrete_extrema = [mx - mn for mn, mx in discrete_extrema]
         discrete_space = gym.spaces.MultiDiscrete(discrete_extrema)
 
     if continuous_extrema:
