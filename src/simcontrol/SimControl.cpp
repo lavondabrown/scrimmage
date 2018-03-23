@@ -748,7 +748,7 @@ void SimControl::run() {
         create_rtree();
         set_autonomy_contacts();
         if (t == t0_) {
-            if (run_interaction_detection()) break;
+            if (!run_interaction_detection()) break;
         }
 
         if (!run_entities()) {
