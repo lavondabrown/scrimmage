@@ -217,6 +217,11 @@ class ScrimmageEnv(gym.Env):
             seed_node = root.find('seed')
         seed_node.text = str(self.rng.randint(0, 2**32 - 1))
 
+        for nd in root.findall('entity_interaction'):
+            if nd.text == 'ExternalControlInteraction':
+                nd.attrib['server_address'] = self.address
+                break
+
         # enable gui
         run_node = root.find('run')
         run_node.attrib['enable_gui'] = str(enable_gui)
@@ -308,6 +313,7 @@ class ScrimmageEnv(gym.Env):
                 self.scrimmage_process.poll()
                 while self.scrimmage_process.returncode is None:
                     self.scrimmage_process.poll()
+                    self.queues['action'].put(ExternalControl_pb2.Actions(done=True))
                     time.sleep(0.1)
             except OSError:
                 print('could not terminate existing scrimmage process. '
