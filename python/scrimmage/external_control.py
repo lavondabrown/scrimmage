@@ -178,6 +178,9 @@ class ScrimmageEnv(gym.Env):
 
         if self.num_actors == 1:
             _add_action(self.action_space, action)
+        elif self.combine_actors:
+            for a in action:
+                _add_action(self.action_space, a)
         else:
             for i, a in enumerate(action):
                 _add_action(self.action_space.spaces[i], a)
@@ -273,8 +276,8 @@ class ScrimmageEnv(gym.Env):
             done = [r.done for r in res.action_results]
 
             if self.combine_actors:
-                obs = np.array([r.observations.value
-                                for r in res.action_results])
+                obs = np.array([v for r in res.action_results
+                                for v in r.observations.value])
                 rew = sum(rew)
                 done = any(done)
             else:
@@ -364,7 +367,7 @@ def _create_tuple_space(space_params):
     if len(discrete_extrema) == 1 and discrete_extrema[0][0] == 0:
         discrete_space = gym.spaces.Discrete(discrete_extrema[0][1] + 1)
     else:
-        discrete_extrema = [mx - mn for mn, mx in discrete_extrema]
+        discrete_extrema = [mx - mn + 1 for mn, mx in discrete_extrema]
         discrete_space = gym.spaces.MultiDiscrete(discrete_extrema)
 
     if continuous_extrema:
@@ -423,8 +426,8 @@ def main():
         [queues[i]['env'].get() for i in range(num_actors)]
     if len(environments) == 1:
         action_space = _create_tuple_space(environments[0].action_spaces)
-        observation_space = _create_tuple_space(
-                                            environments[0].observation_spaces)
+        observation_space = \
+            _create_tuple_space(environments[0].observation_spaces)
     else:
         action_space = [_create_tuple_space(e.action_spaces)for e in
                         environments]
