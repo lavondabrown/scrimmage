@@ -87,7 +87,6 @@ bool ExternalControlInteraction::step_entity_interaction(std::list<sc::EntityPtr
     // receive action from grpc, send action to each autonomy, get reward/obs
     if (!env_sent_) {
         if (!send_env()) {
-          std::cout << "stuff" << std::endl;
             return false;
         }
         env_sent_ = true;
