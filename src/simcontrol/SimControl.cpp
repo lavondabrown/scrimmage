@@ -73,6 +73,7 @@
 #include <GeographicLib/LocalCartesian.hpp>
 
 #include <boost/thread.hpp>
+#include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 
@@ -642,7 +643,10 @@ bool SimControl::run_networks() {
     return all_true;
 }
 
-bool SimControl::run_interaction_detection() {
+bool SimControl::run_interaction_detection(bool post_step) {
+
+    auto should_run = [&](auto &ent_inter){return ent_inter->post_step() == post_step;};
+    auto inters = ent_inters_ | ba::filtered(should_run);
 
     auto handle_callbacks = [&](auto ent_inter) {ent_inter->run_callbacks();};
 
@@ -650,7 +654,7 @@ bool SimControl::run_interaction_detection() {
         bool result = ent_inter->step_entity_interaction(ents_, t_, dt_);
         if (!result) {
             cout << "Entity interaction requested simulation termination: "
-                 << ent_inter->name() << endl;
+                 << ent_inter->name() << " at time " << t_ << endl;
         }
         return result;
     };
@@ -661,9 +665,9 @@ bool SimControl::run_interaction_detection() {
         ent_inter->shapes().clear();
     };
 
-    br::for_each(ent_inters_, handle_callbacks);
-    bool success = std::all_of(ent_inters_.begin(), ent_inters_.end(), run_interaction);
-    br::for_each(ent_inters_, handle_shapes);
+    br::for_each(inters, handle_callbacks);
+    bool success = std::all_of(inters.begin(), inters.end(), run_interaction);
+    br::for_each(inters, handle_shapes);
 
     // Determine if entities need to be removed
     for (auto &ent : ents_) {
@@ -747,16 +751,14 @@ void SimControl::run() {
 
         create_rtree();
         set_autonomy_contacts();
-        if (t == t0_) {
-            if (!run_interaction_detection()) break;
-        }
 
+        end_condition_interaction = run_interaction_detection(false);
         if (!run_entities()) {
             std::cout << "Exiting due to plugin request." << std::endl;
             break;
         }
+        end_condition_interaction |= run_interaction_detection(true);
 
-        end_condition_interaction = run_interaction_detection();
         if (!end_condition_interaction) {
             auto msg = std::make_shared<Message<sm::EntityInteractionExit>>();
             pub_ent_int_exit_->publish(msg);

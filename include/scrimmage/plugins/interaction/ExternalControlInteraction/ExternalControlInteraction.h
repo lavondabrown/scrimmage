@@ -63,7 +63,7 @@ class ExternalControlInteraction : public scrimmage::EntityInteraction {
 
  protected:
     bool send_env();
-    boost::optional<scrimmage_proto::Actions>
+    std::pair<bool, boost::optional<scrimmage_proto::Actions>>
         send_action_result(double t, double dt, bool done, bool only_observation);
     void handle_action(scrimmage_proto::Actions &actions);
 

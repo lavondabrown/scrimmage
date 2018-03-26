@@ -32,6 +32,7 @@
 
 #include <grpc++/grpc++.h>
 
+#include <scrimmage/parse/MissionParse.h>
 #include <scrimmage/plugin_manager/RegisterPlugin.h>
 #include <scrimmage/plugins/autonomy/ExternalControl/ExternalControl.h>
 #include <scrimmage/plugins/autonomy/ExternalControl/ExternalControlClient.h>
@@ -63,12 +64,14 @@ bool ExternalControlInteraction::init(std::map<std::string, std::string> &missio
     *external_control_client_ =
         autonomy::ExternalControlClient(grpc::CreateChannel(
             server_address, grpc::InsecureChannelCredentials()));
+    post_step_ = false;
     return true;
 }
 
 
-bool ExternalControlInteraction::step_entity_interaction(std::list<sc::EntityPtr> &ents,
-                                                  double t, double dt) {
+bool ExternalControlInteraction::step_entity_interaction(
+        std::list<sc::EntityPtr> &ents, double t, double dt) {
+
     if (ents.empty()) return true;
 
     if (ext_ctrl_vec_.empty()) {
@@ -94,12 +97,14 @@ bool ExternalControlInteraction::step_entity_interaction(std::list<sc::EntityPtr
 
     // get reward/obs/done
     // terminate is supposed to occur after the first state is experienced
-    auto actions = send_action_result(t, dt, false, t != 0);
-    if (!actions || actions->done()) return false;
+    bool done;
+    boost::optional<sp::Actions> actions;
+    std::tie(done, actions) = send_action_result(t, dt, false, t != 0);
+    if (!actions) return false;
 
     // receive action
     handle_action(*actions);
-    return true;
+    return !done && !actions->done();
 }
 
 void ExternalControlInteraction::handle_action(scrimmage_proto::Actions &actions) {
@@ -108,7 +113,7 @@ void ExternalControlInteraction::handle_action(scrimmage_proto::Actions &actions
     }
 }
 
-boost::optional<scrimmage_proto::Actions>
+std::pair<bool, boost::optional<scrimmage_proto::Actions>>
 ExternalControlInteraction::send_action_result(double t, double dt, bool done, bool allow_done) {
     sp::ActionResults action_results;
 
@@ -117,12 +122,15 @@ ExternalControlInteraction::send_action_result(double t, double dt, bool done, b
         bool temp_done;
         std::tie(temp_done, temp_reward) = a->calc_reward(t, dt);
         sp::ActionResult *ar = action_results.add_action_results();
+        done |= temp_done;
         *ar = a->get_observation(t);
         ar->set_done(allow_done ? (done || temp_done) : false);
         ar->set_reward(allow_done ? temp_reward : 0);
     }
 
-    return external_control_client_->send_action_results(action_results);
+    action_results.set_done(done);
+    auto actions = external_control_client_->send_action_results(action_results);
+    return std::make_pair(done, actions);
 }
 
 bool ExternalControlInteraction::send_env() {
