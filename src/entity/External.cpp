@@ -69,12 +69,12 @@ External::External() :
     mp_(std::make_shared<MissionParse>()) {
 }
 
-bool External::create_entity(const std::string &mission_file,
-                             int max_entities, int entity_id,
+bool External::create_entity(int max_entities, int entity_id,
                              const std::string &entity_name) {
 
-    if (!mp_->parse(expand_user(mission_file))) {
-        cout << "Failed to parse file: " << mission_file << endl;
+    if (std::isnan(mp_->t0())) {
+        std::cout << "external.mp()->parse(mission) does not "
+            << "appear to have been called, exiting..." << std::endl;
         return false;
     }
 
@@ -217,4 +217,6 @@ void External::call_update_contacts(double t) {
     }
     mutex.unlock();
 }
+
+MissionParsePtr External::mp() {return mp_;}
 } // namespace scrimmage
