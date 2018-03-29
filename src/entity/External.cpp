@@ -109,8 +109,17 @@ bool External::create_entity(const std::string &mission_file,
     FileSearchPtr file_search = std::make_shared<FileSearch>();
     entity_ = std::make_shared<Entity>();
 
+    std::string output_type = get("output_type", mp->params(), std::string("all"));
+    auto  = [&](std::string s) {
+        return output_all || output_type.find(s) != std::string::npos;
+    };
+
     mp_->create_log_dir();
-    log_->set_enable_log(true);
+    bool enable_log = 
+        output_type.find("all") != std::string::npos ||
+        output_type.find("frames") != std::string::npos;
+
+    log_->set_enable_log(enable_log);
     log_->init(mp_->log_dir(), Log::WRITE);
 
     RandomPtr random = std::make_shared<Random>();
