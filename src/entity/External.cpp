@@ -109,13 +109,10 @@ bool External::create_entity(const std::string &mission_file,
     FileSearchPtr file_search = std::make_shared<FileSearch>();
     entity_ = std::make_shared<Entity>();
 
-    std::string output_type = get("output_type", mp->params(), std::string("all"));
-    auto  = [&](std::string s) {
-        return output_all || output_type.find(s) != std::string::npos;
-    };
+    std::string output_type = get("output_type", mp_->params(), std::string("all"));
 
     mp_->create_log_dir();
-    bool enable_log = 
+    bool enable_log =
         output_type.find("all") != std::string::npos ||
         output_type.find("frames") != std::string::npos;
 
