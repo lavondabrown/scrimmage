@@ -63,30 +63,29 @@ class External {
  public:
     External();
     EntityPtr &entity();
-    bool create_entity(const std::string &mission_file,
-                       int max_entities, int entity_id,
+    bool create_entity(int max_entities, int entity_id,
                        const std::string &entity_name);
 
     template <class AcceptFunc>
-    bool create_entity(const std::string &mission_file,
-                       int max_entities, int entity_id,
+    bool create_entity(int max_entities, int entity_id,
                        const std::string &entity_name,
                        AcceptFunc accept_func) {
 
-        const bool success =
-            create_entity(mission_file, max_entities, entity_id, entity_name);
+        if (!create_entity(max_entities, entity_id, entity_name)) return false;
+
         auto filter_func = [&](auto &p) {return !accept_func(p);};
         auto &a = entity_->autonomies();
         a.erase(std::remove_if(a.begin(), a.end(), filter_func), a.end());
 
         auto &c = entity_->controllers();
         c.erase(std::remove_if(c.begin(), c.end(), filter_func), c.end());
-        return success;
+        return true;
     }
 
     double min_motion_dt = 1;
     std::mutex mutex;
     DelayedTask update_contacts_task;
+    MissionParsePtr mp();
 
  protected:
     EntityPtr entity_;
