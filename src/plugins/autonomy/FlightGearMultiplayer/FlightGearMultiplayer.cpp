@@ -62,15 +62,19 @@ void FlightGearMultiplayer::init(std::map<std::string, std::string> &params) {
     // int server_port = sc::get<int>("server_port", params, 5000);
 
     // TODO: Open a socket to the multiplayer server
+
+    //int sockfd = socket(domain, type, protocol);
+    //int connect(int sockfd, const struct sockaddr *addr,
+    //            socklen_t addrlen);
 }
 
 bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
 
-    // User Documentation about using FlightGear Multiplayer:
+    // User Documentation about using FlightGear Multiplayer: OK
     // http://wiki.flightgear.org/Howto:Multiplayer
 
     // Developer documentation for the UDP packet that is sent from a Flight
-    // gear client to the multiplayer server:
+    // gear client to the multiplayer server: OK
     // http://wiki.flightgear.org/Multiplayer_protocol
 
 
@@ -84,11 +88,11 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     // TODO: Create XDR packet from state_ variable.  We can leverage the
     // socket code and XDR packet definitions in the actual flight gear
     // multiplayer server code. So, in a directory (like ~/repos/3rd-party),
-    // clone the flight gear multiplayer server....
+    // clone the flight gear multiplayer server.... Done
     //
-    // git clone https://github.com/FlightGear/fgms.git
-    // build it... mkdir build && cd build && make
-    // We need to be able to use the files at:
+    // git clone https://github.com/FlightGear/fgms.git Done
+    // build it... mkdir build && cd build && make Done
+    // We need to be able to use the files at: OK
     // fgms/src/flightgear/MultiPlayer/
 
     // Look at how the XDR_encode<T>() function is used in
