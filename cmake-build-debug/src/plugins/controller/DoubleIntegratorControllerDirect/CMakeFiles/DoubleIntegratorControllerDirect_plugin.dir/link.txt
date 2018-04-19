@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libDoubleIntegratorControllerDirect_plugin.so.0 -o ../../../../plugin_libs/libDoubleIntegratorControllerDirect_plugin.so.0.0.1 CMakeFiles/DoubleIntegratorControllerDirect_plugin.dir/DoubleIntegratorControllerDirect.cpp.o 

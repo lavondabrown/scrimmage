@@ -1,0 +1,19 @@
+# Hashes of file build rules.
+bdbb7ee5a4c9c461ca4e79c5665f7cf8 msgs/scrimmage/msgs/AuctionMsgs.pb.cc
+ea838520361806668a2b19f91d306d8a msgs/scrimmage/msgs/Capture.pb.cc
+9b33bc5ca956ed9ff17e4d28a2854b47 msgs/scrimmage/msgs/Collision.pb.cc
+02a11f1d017a349c2bb5266a14d6d841 msgs/scrimmage/msgs/Event.pb.cc
+2c5b993c15a6e60f1a93413b3af826a1 msgs/scrimmage/msgs/Simple.pb.cc
+bac127475dda7b5652a4a425699d1d0d src/proto/CMakeFiles/scrimmage-proto-gen
+4b342f9c3295801fc4e784cd51e8a594 src/proto/scrimmage/proto/Color.pb.cc
+655c29a75f54a93c9d3e178bcc98d3be src/proto/scrimmage/proto/Contact.pb.cc
+0fc6af9613bb419e6edda8e61d35d953 src/proto/scrimmage/proto/ExternalControl.pb.cc
+99dbde9bf233cbfa59c7941f5ff42072 src/proto/scrimmage/proto/Frame.pb.cc
+cb6befc76cb5fbe9b56513bc0364f283 src/proto/scrimmage/proto/GUIControl.pb.cc
+36e8f899a6be1deb6bd27919459a6feb src/proto/scrimmage/proto/ID.pb.cc
+cdfb58cde27d553b5fb173ae8508d642 src/proto/scrimmage/proto/Quaternion.pb.cc
+de65d6c0ec6bf2284e16754aa8bd05d5 src/proto/scrimmage/proto/Scrimmage.pb.cc
+d31e0566b8add204bf401f4be682cfed src/proto/scrimmage/proto/Shape.pb.cc
+d26f8aad7b3271ba9e31b95c580782ab src/proto/scrimmage/proto/State.pb.cc
+9aa01ea0621c82473b991b0fe01d6ee3 src/proto/scrimmage/proto/Vector3d.pb.cc
+9aae6bc5ac87b73f257146a841c74352 src/proto/scrimmage/proto/Visual.pb.cc

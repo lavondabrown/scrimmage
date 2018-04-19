@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libWaypointGenerator_plugin.so.0 -o ../../../../plugin_libs/libWaypointGenerator_plugin.so.0.0.1 CMakeFiles/WaypointGenerator_plugin.dir/WaypointGenerator.cpp.o 

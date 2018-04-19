@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libDoubleIntegratorControllerVelYaw_plugin.so.0 -o ../../../../plugin_libs/libDoubleIntegratorControllerVelYaw_plugin.so.0.0.1 CMakeFiles/DoubleIntegratorControllerVelYaw_plugin.dir/DoubleIntegratorControllerVelYaw.cpp.o 

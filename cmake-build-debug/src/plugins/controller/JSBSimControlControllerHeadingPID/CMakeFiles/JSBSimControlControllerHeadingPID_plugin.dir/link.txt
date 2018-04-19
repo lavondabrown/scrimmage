@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libJSBSimControlControllerHeadingPID_plugin.so.0 -o ../../../../plugin_libs/libJSBSimControlControllerHeadingPID_plugin.so.0.0.1 CMakeFiles/JSBSimControlControllerHeadingPID_plugin.dir/JSBSimControlControllerHeadingPID.cpp.o 

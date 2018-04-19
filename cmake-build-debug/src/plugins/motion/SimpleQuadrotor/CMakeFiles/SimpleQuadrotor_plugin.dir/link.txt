@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSimpleQuadrotor_plugin.so.0 -o ../../../../plugin_libs/libSimpleQuadrotor_plugin.so.0.0.1 CMakeFiles/SimpleQuadrotor_plugin.dir/SimpleQuadrotor.cpp.o 

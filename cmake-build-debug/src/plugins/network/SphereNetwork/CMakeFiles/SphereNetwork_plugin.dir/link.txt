@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSphereNetwork_plugin.so.0 -o ../../../../plugin_libs/libSphereNetwork_plugin.so.0.0.1 CMakeFiles/SphereNetwork_plugin.dir/SphereNetwork.cpp.o 

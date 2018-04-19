@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libRigidBody6DOFStateSensor_plugin.so.0 -o ../../../../plugin_libs/libRigidBody6DOFStateSensor_plugin.so.0.0.1 CMakeFiles/RigidBody6DOFStateSensor_plugin.dir/RigidBody6DOFStateSensor.cpp.o -Wl,-rpath,/home/lbrown62/scrimmage/scrimmage/cmake-build-debug/plugin_libs: ../../../../plugin_libs/libMultirotor_plugin.so.0.0.1 

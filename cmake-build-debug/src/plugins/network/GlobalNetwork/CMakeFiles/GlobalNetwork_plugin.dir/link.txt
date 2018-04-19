@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libGlobalNetwork_plugin.so.0 -o ../../../../plugin_libs/libGlobalNetwork_plugin.so.0.0.1 CMakeFiles/GlobalNetwork_plugin.dir/GlobalNetwork.cpp.o 

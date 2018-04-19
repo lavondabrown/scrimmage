@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libUnicycle_plugin.so.0 -o ../../../../plugin_libs/libUnicycle_plugin.so.0.0.1 CMakeFiles/Unicycle_plugin.dir/Unicycle.cpp.o 

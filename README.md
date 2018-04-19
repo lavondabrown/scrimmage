@@ -204,6 +204,18 @@ tree:
 
     cmake .. -DMOOSIVP_SOURCE_TREE_BASE=/path/to/moos-ivp
 
+## FlightGear Multiplayer Server (FGMS) Integration
+
+If you want to use FGMS with SCRIMMAGE, you will first need to download and
+build FGMS according to the instructions at:
+https://github.com/FlightGear/fgms
+
+The FGMS plugin interacts with Scrimmage to receive the state variables of each
+entity. To build FGMS, you have to provide cmake with the path to the FGMS source
+tree:
+
+    cmake .. -DFGMS_SOURCE_TREE_BASE=/path/to/fgms
+
 ## Download SCRIMMAGE Docker Image
 
 The SCRIMMAGE docker image is pushed to a public repository after a successful

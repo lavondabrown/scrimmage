@@ -255,6 +255,17 @@ else()
 endif()
 
 ########################################################
+# Find FlightGear Multiplayer Server
+########################################################
+find_package(FGMS)
+if (FGMS_FOUND)
+  include_directories(${FGMS_INCLUDE_DIRS})
+  add_definitions(-DENABLE_FGMS=1)
+else()
+  add_definitions(-DENABLE_FGMS=0)
+endif()
+
+########################################################
 # Recurse into src, share, and plugins
 ########################################################
 add_subdirectory(share)

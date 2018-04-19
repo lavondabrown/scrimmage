@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libMotorSchemas_plugin.so.0 -o ../../../../plugin_libs/libMotorSchemas_plugin.so.0.0.1 CMakeFiles/MotorSchemas_plugin.dir/MotorSchemas.cpp.o 

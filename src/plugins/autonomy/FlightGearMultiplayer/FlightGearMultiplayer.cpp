@@ -36,11 +36,15 @@
 #include <scrimmage/entity/Entity.h>
 #include <scrimmage/math/State.h>
 #include <scrimmage/parse/ParseUtils.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <iostream>
 #include <limits>
 
 #include <GeographicLib/LocalCartesian.hpp>
+
+// #include <fgms/src/server/fg_server.hxx>
 
 using std::cout;
 using std::endl;
@@ -63,9 +67,9 @@ void FlightGearMultiplayer::init(std::map<std::string, std::string> &params) {
 
     // TODO: Open a socket to the multiplayer server
 
-    //int sockfd = socket(domain, type, protocol);
-    //int connect(int sockfd, const struct sockaddr *addr,
-    //            socklen_t addrlen);
+  //  int socket_fgms = socket(AF_INET, SOCK_DGRAM, 0);
+   // int connect(int socket_fgms, const struct sockaddr *addr,
+   //             socklen_t addrlen);
 }
 
 bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
@@ -88,11 +92,11 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     // TODO: Create XDR packet from state_ variable.  We can leverage the
     // socket code and XDR packet definitions in the actual flight gear
     // multiplayer server code. So, in a directory (like ~/repos/3rd-party),
-    // clone the flight gear multiplayer server.... Done
+    // clone the flight gear multiplayer server.... ***Done
     //
-    // git clone https://github.com/FlightGear/fgms.git Done
-    // build it... mkdir build && cd build && make Done
-    // We need to be able to use the files at: OK
+    // git clone https://github.com/FlightGear/fgms.git ***Done
+    // build it... mkdir build && cd build && make ***Done
+    // We need to be able to use the files at: ***OK
     // fgms/src/flightgear/MultiPlayer/
 
     // Look at how the XDR_encode<T>() function is used in
@@ -103,12 +107,21 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     // the m_DataSocket->sendto method. m_DataSocket is a netSocket class in
     // the multiplayer server code.
 
+    //***line 1319-1320 in fg_server.cxx
+    //***state_variable -- is that the x,y,and z position?  lat, lon, alt? or more state info other than position?
+    //***XDR = eXternal Data Representation
+    //***encoding = converting from local representation to XDR
+    //***decoding = converting from XDR to local representation
+
     // In order to use the multiplayer server code, this plugin needs to be
     // able to "find" the fgms code. This can be handcoded at first, but
     // eventually, I want this plugin to not build if the user didn't specify a
     // CMake varaible that points to the fgms "build tree". For example, if the
     // user wants to build this plugin, they should type:
     // cmake .. -DFGMS_ROOT=~/repos/3rd-party/fgms
+    //
+    //***any examples in scrimmage where this is currently done? Where is the line drawn between handcoded and Cmake?
+    //***
     //
     // If the user doesn't specify FGMS_ROOT variable, then this plugin
     // shouldn't build.

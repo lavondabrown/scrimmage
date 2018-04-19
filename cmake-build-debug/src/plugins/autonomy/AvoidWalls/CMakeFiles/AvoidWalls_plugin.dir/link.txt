@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libAvoidWalls_plugin.so.0 -o ../../../../plugin_libs/libAvoidWalls_plugin.so.0.0.1 CMakeFiles/AvoidWalls_plugin.dir/AvoidWalls.cpp.o 

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libAvoidEntityMS_plugin.so.0 -o ../../../../plugin_libs/libAvoidEntityMS_plugin.so.0.0.1 CMakeFiles/AvoidEntityMS_plugin.dir/AvoidEntityMS.cpp.o 

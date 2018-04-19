@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libLocalNetwork_plugin.so.0 -o ../../../../plugin_libs/libLocalNetwork_plugin.so.0.0.1 CMakeFiles/LocalNetwork_plugin.dir/LocalNetwork.cpp.o 

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libFixedWing6DOFControllerPID_plugin.so.0 -o ../../../../plugin_libs/libFixedWing6DOFControllerPID_plugin.so.0.0.1 CMakeFiles/FixedWing6DOFControllerPID_plugin.dir/FixedWing6DOFControllerPID.cpp.o 
