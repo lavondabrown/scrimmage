@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libControl3D_plugin.so.0 -o ../../../../plugin_libs/libControl3D_plugin.so.0.0.1 CMakeFiles/Control3D_plugin.dir/Control3D.cpp.o 

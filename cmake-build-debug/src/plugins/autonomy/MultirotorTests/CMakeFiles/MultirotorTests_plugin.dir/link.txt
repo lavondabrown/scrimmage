@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libMultirotorTests_plugin.so.0 -o ../../../../plugin_libs/libMultirotorTests_plugin.so.0.0.1 CMakeFiles/MultirotorTests_plugin.dir/MultirotorTests.cpp.o -Wl,-rpath,/home/lbrown62/scrimmage/scrimmage/cmake-build-debug/plugin_libs: ../../../../plugin_libs/libMultirotor_plugin.so.0.0.1 

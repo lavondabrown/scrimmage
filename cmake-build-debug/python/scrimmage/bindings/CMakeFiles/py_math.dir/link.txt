@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libpy_math.so -o ../../../lib/libpy_math.so CMakeFiles/py_math.dir/src/py_math.cpp.o 

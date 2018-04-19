@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libJoystickController_plugin.so.0 -o ../../../../plugin_libs/libJoystickController_plugin.so.0.0.1 CMakeFiles/JoystickController_plugin.dir/JoystickController.cpp.o 

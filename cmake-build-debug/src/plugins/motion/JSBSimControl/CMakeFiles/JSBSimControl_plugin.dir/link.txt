@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libJSBSimControl_plugin.so.0 -o ../../../../plugin_libs/libJSBSimControl_plugin.so.0.0.1 CMakeFiles/JSBSimControl_plugin.dir/JSBSimControl.cpp.o -Wl,-rpath,/opt/scrimmage/lib: /opt/scrimmage/lib/libJSBSim.so /opt/scrimmage/lib/libJSBSim.so 

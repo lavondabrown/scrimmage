@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libQuadTest_plugin.so.0 -o ../../../../plugin_libs/libQuadTest_plugin.so.0.0.1 CMakeFiles/QuadTest_plugin.dir/QuadTest.cpp.o 

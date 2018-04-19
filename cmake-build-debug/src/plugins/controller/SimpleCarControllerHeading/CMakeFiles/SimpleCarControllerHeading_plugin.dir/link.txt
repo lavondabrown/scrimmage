@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSimpleCarControllerHeading_plugin.so.0 -o ../../../../plugin_libs/libSimpleCarControllerHeading_plugin.so.0.0.1 CMakeFiles/SimpleCarControllerHeading_plugin.dir/SimpleCarControllerHeading.cpp.o 

@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libTutorialOpenAISensor_plugin.so.0 -o ../../../../plugin_libs/libTutorialOpenAISensor_plugin.so.0.0.1 CMakeFiles/TutorialOpenAISensor_plugin.dir/TutorialOpenAISensor.cpp.o 

@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libRigidBody6DOF_plugin.so.0 -o ../../../../plugin_libs/libRigidBody6DOF_plugin.so.0.0.1 CMakeFiles/RigidBody6DOF_plugin.dir/RigidBody6DOF.cpp.o 

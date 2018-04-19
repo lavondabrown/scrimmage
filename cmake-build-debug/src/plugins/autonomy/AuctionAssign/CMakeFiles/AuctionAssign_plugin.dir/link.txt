@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libAuctionAssign_plugin.so.0 -o ../../../../plugin_libs/libAuctionAssign_plugin.so.0.0.1 CMakeFiles/AuctionAssign_plugin.dir/AuctionAssign.cpp.o -Wl,-rpath,/home/lbrown62/scrimmage/scrimmage/cmake-build-debug/lib:/opt/scrimmage/lib: ../../../../lib/libscrimmage-msgs.so.0.0.1 /opt/scrimmage/lib/libprotobuf.so -lpthread 
