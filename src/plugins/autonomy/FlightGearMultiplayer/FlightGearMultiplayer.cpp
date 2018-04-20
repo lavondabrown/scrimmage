@@ -36,15 +36,20 @@
 #include <scrimmage/entity/Entity.h>
 #include <scrimmage/math/State.h>
 #include <scrimmage/parse/ParseUtils.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 
 #include <iostream>
 #include <limits>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <netdb.h>
 
 #include <GeographicLib/LocalCartesian.hpp>
 
-// #include <fgms/src/server/fg_server.hxx>
+#include <fgms/src/server/fg_server.hxx>
 
 using std::cout;
 using std::endl;
@@ -62,14 +67,42 @@ FlightGearMultiplayer::FlightGearMultiplayer() {
 }
 
 void FlightGearMultiplayer::init(std::map<std::string, std::string> &params) {
-    // double server_ip = sc::get<std::string>("server_ip", params, "127.0.0.1");
-    // int server_port = sc::get<int>("server_port", params, 5000);
+     double server_ip = sc::get<std::string>("server_ip", params, "127.0.0.1");
+     int server_port = sc::get<int>("server_port", params, 5000);
 
     // TODO: Open a socket to the multiplayer server
 
-  //  int socket_fgms = socket(AF_INET, SOCK_DGRAM, 0);
-   // int connect(int socket_fgms, const struct sockaddr *addr,
-   //             socklen_t addrlen);
+    int client, connection_status;
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(server_port);
+    server_addr.sin_addr.s_addr = server_ip;
+
+    client = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (client < 0)
+    {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
+    else
+        printf("\n Socket creation successful \n");
+
+    connection_status = connect(client, (struct sockaddr *) &server_addr, sizeof(server_addr));
+
+    if (connection_status < 0)
+    {
+        printf("\n Connection Failed \n");
+        return -1;
+    }
+    else
+        printf("\n Connection successful \n");
+
+    //--multiplay=direction,10,ip.address,port
+    //--callsign=anything
+    //--multiplay=in,10,127.0.0.1,5000   ----------> sending state variables to SC from FG
+    //--multiplay=out,10,127.0.0.1,5001   ----------> will FG be sending SC anything ? No, Kevin is flying human
+    // pilot through scrimmage and leveraging the JSBSim controller to update flight gear viewer
 }
 
 bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
@@ -82,11 +115,13 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     // http://wiki.flightgear.org/Multiplayer_protocol
 
 
-    // Get lat, lon, alt from x, y, z position
+    // Get lat, lon, alt from x, y, z position //also need to get rho, pitch, and yaw
     double lat, lon, alt;
     parent_->projection()->Reverse(state_->pos()(0), state_->pos()(1),
                                    state_->pos()(2),
                                    lat, lon, alt);
+
+    send(sock_fgms , hello , strlen(hello) , 0 );
 
     //////////////////////////////////////////////////////
     // TODO: Create XDR packet from state_ variable.  We can leverage the
