@@ -110,18 +110,63 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     // User Documentation about using FlightGear Multiplayer: OK
     // http://wiki.flightgear.org/Howto:Multiplayer
 
+    //http://wiki.flightgear.org/Howto:Set_up_a_multiplayer_server
+
     // Developer documentation for the UDP packet that is sent from a Flight
     // gear client to the multiplayer server: OK
     // http://wiki.flightgear.org/Multiplayer_protocol
 
 
-    // Get lat, lon, alt from x, y, z position //also need to get rho, pitch, and yaw
+    // Get lat, lon, alt from x, y, z position //also need to get roll (X), pitch(Y), and yaw (Z) orientation
     double lat, lon, alt;
     parent_->projection()->Reverse(state_->pos()(0), state_->pos()(1),
                                    state_->pos()(2),
                                    lat, lon, alt);
 
-    send(sock_fgms , hello , strlen(hello) , 0 );
+    send(client, lat, strlen(lat) , 0 );
+
+    //Position messages
+
+    //The data of position message is more complicated and is composed of a two parts. The first part contain
+    // information needed to place an aircraft model in the right position and orientation. The second part contain
+    // property values used for animating the model, provided the user on the receiving end would have that aircraft
+    // installed.
+
+    //First part:
+    //      -Positions are in with respect to the Earth centered frame.
+    //      -Orientations are with respect to the X, Y and Z axis of the Earth centered frame, stored in the angle axis
+    //          representation where the angle is coded into the axis length.
+    //      -Velocities are along the X, Y and Z directions of the Earth centered frame.
+    //      -Angular accelerations are in two parts of the three dimensional angular velocity vector with respect to the
+    //          Earth centered frame measured in the Earth centered frame.
+    //      -Linear accelerations are in two parts of the three dimensional linear acceleration vector with respect to
+    //          the Earth centered frame measured in the Earth centered frame.
+
+    //The first part contain these fields in exactly that order:
+
+    //Field 	Size 	Remarks
+    //ModelName 	96 bytes 	Zero terminated array of characters representing the aircraft model (/sim/model/path) used by the user
+    //time 	8 bytes 	Representing the time when this message was generated double
+    //lag 	8 bytes 	Time offset for network lag double
+    //PosX 	8 bytes 	XDR encoded double value, X-ccordinate of users position
+    //PosY 	8 bytes 	XDR encoded double value, Y-ccordinate of users position
+    //PosZ 	8 bytes 	XDR encoded double value, z-ccordinate of users position
+    //OriX 	4 bytes 	XDR encoded float value, X-orientation of the user
+    //OriY 	4 bytes 	XDR encoded float value, Y-orientation of the user
+    //OriZ 	4 bytes 	XDR encoded float value, Z-orientation of the user
+    //VelX 	4 bytes 	XDR encoded float value, velocity of the user in X direction
+    //VelY 	4 bytes 	XDR encoded float value, velocity of the user in Y direction
+    //VelZ 	4 bytes 	XDR encoded float value, velocity of the user in Z direction
+    //AV1 	4 bytes 	XDR encoded float value, 1. part of the three dimensional angular velocity vector
+    //AV2 	4 bytes 	XDR encoded float value, 2. part of the three dimensional angular velocity vector
+    //AV3 	4 bytes 	XDR encoded float value, 3. part of the three dimensional angular velocity vector
+    //LA1 	4 bytes 	XDR encoded float value, 1. part of the three dimensional linear accelaration vector
+    //LA2 	4 bytes 	XDR encoded float value, 2. part of the three dimensional linear accelaration vector
+    //LA3 	4 bytes 	XDR encoded float value, 3. part of the three dimensional linear accelaration vector
+    //AA1 	4 bytes 	XDR encoded float value, 1. part of the three dimensional angular accelaration vector
+    //AA2 	4 bytes 	XDR encoded float value, 2. part of the three dimensional angular accelaration vector
+    //AA3 	4 bytes 	XDR encoded float value, 3. part of the three dimensional angular accelaration vector
+    //pad 	up to 8 bytes 	For padding the data to a multiple of 8 bytes
 
     //////////////////////////////////////////////////////
     // TODO: Create XDR packet from state_ variable.  We can leverage the
