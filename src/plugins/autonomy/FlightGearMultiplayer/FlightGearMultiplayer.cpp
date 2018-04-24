@@ -49,7 +49,10 @@
 
 #include <GeographicLib/LocalCartesian.hpp>
 
-#include <fgms/src/server/fg_server.hxx>
+#include <3rd-partyfgms/src/MultiPlayer/tiny_xdr.hxx>
+#include <3rd-party/fgms/src/MultiPlayer/mpmessages.hxx>
+#include <3rd-party/fgms/src/server/fg_server.hxx>
+#include <3rd-party/fgms/src/server/fg_list.hxx>
 
 using std::cout;
 using std::endl;
@@ -69,6 +72,8 @@ FlightGearMultiplayer::FlightGearMultiplayer() {
 void FlightGearMultiplayer::init(std::map<std::string, std::string> &params) {
      double server_ip = sc::get<std::string>("server_ip", params, "127.0.0.1");
      int server_port = sc::get<int>("server_port", params, 5000);
+
+     const sc_ip;
 
     // TODO: Open a socket to the multiplayer server
 
@@ -123,50 +128,63 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
                                    state_->pos()(2),
                                    lat, lon, alt);
 
-    send(client, lat, strlen(lat) , 0 );
+    // need to find corresponding values on scrimmage state_variable
 
-    //Position messages
+   // send(client, lat, strlen(lat) , 0 );
 
-    //The data of position message is more complicated and is composed of a two parts. The first part contain
-    // information needed to place an aircraft model in the right position and orientation. The second part contain
-    // property values used for animating the model, provided the user on the receiving end would have that aircraft
-    // installed.
 
-    //First part:
-    //      -Positions are in with respect to the Earth centered frame.
-    //      -Orientations are with respect to the X, Y and Z axis of the Earth centered frame, stored in the angle axis
-    //          representation where the angle is coded into the axis length.
-    //      -Velocities are along the X, Y and Z directions of the Earth centered frame.
-    //      -Angular accelerations are in two parts of the three dimensional angular velocity vector with respect to the
-    //          Earth centered frame measured in the Earth centered frame.
-    //      -Linear accelerations are in two parts of the three dimensional linear acceleration vector with respect to
-    //          the Earth centered frame measured in the Earth centered frame.
+    //T_PositionMsg.position[X] = lat; //mpmessages.hxx
 
-    //The first part contain these fields in exactly that order:
+    //encode position and orientation using XDR
+    char model = Entity1[sizeof(Entity1)];
 
-    //Field 	Size 	Remarks
-    //ModelName 	96 bytes 	Zero terminated array of characters representing the aircraft model (/sim/model/path) used by the user
-    //time 	8 bytes 	Representing the time when this message was generated double
-    //lag 	8 bytes 	Time offset for network lag double
-    //PosX 	8 bytes 	XDR encoded double value, X-ccordinate of users position
-    //PosY 	8 bytes 	XDR encoded double value, Y-ccordinate of users position
-    //PosZ 	8 bytes 	XDR encoded double value, z-ccordinate of users position
-    //OriX 	4 bytes 	XDR encoded float value, X-orientation of the user
-    //OriY 	4 bytes 	XDR encoded float value, Y-orientation of the user
-    //OriZ 	4 bytes 	XDR encoded float value, Z-orientation of the user
-    //VelX 	4 bytes 	XDR encoded float value, velocity of the user in X direction
-    //VelY 	4 bytes 	XDR encoded float value, velocity of the user in Y direction
-    //VelZ 	4 bytes 	XDR encoded float value, velocity of the user in Z direction
-    //AV1 	4 bytes 	XDR encoded float value, 1. part of the three dimensional angular velocity vector
-    //AV2 	4 bytes 	XDR encoded float value, 2. part of the three dimensional angular velocity vector
-    //AV3 	4 bytes 	XDR encoded float value, 3. part of the three dimensional angular velocity vector
-    //LA1 	4 bytes 	XDR encoded float value, 1. part of the three dimensional linear accelaration vector
-    //LA2 	4 bytes 	XDR encoded float value, 2. part of the three dimensional linear accelaration vector
-    //LA3 	4 bytes 	XDR encoded float value, 3. part of the three dimensional linear accelaration vector
-    //AA1 	4 bytes 	XDR encoded float value, 1. part of the three dimensional angular accelaration vector
-    //AA2 	4 bytes 	XDR encoded float value, 2. part of the three dimensional angular accelaration vector
-    //AA3 	4 bytes 	XDR encoded float value, 3. part of the three dimensional angular accelaration vector
-    //pad 	up to 8 bytes 	For padding the data to a multiple of 8 bytes
+    double time = XDR_encode64<double> ();
+
+    double lag = XDR_encode62<double> ();
+
+    double Pos = XDR_encode64<double> (lat);
+    double Pos = XDR_encode64<double> (lon);
+    double Pos = XDR_encode64<double> (alt);
+
+    float Ori = XDR_encode<float> ();
+    float Ori = XDR_encode<float> ();
+    float Ori = XDR_encode<float> ();
+
+    float linvel = XDR_encode<float> ();
+    float linvel = XDR_encode<float> ();
+    float linvel = XDR_encode<float> ();
+
+    float angvel = XDR_encode<float> ();
+    float angvel = XDR_encode<float> ();
+    float angvel = XDR_encode<float> ();
+
+    float linaccel = XDR_encode<float> ();
+    float linaccel = XDR_encode<float> ();
+    float linaccel = XDR_encode<float> ();
+
+    float angaccel = XDR_encode<float> ();
+    float angaccel = XDR_encode<float> ();
+    float angaccel = XDR_encode<float> ();
+
+
+
+            //flightgear position msg struct
+            T_PositionMsg.Model = model;
+            T_PositionMsg.time = time;
+            T_PositionMsg.lag = lag;
+            T_positionMsg.position[3] = Pos;
+            T_positionMsg.orientation[3]= Ori;
+            T_positionMsg.linearVel[3]= linvel;
+            T_PositionMsg.angularVel[3]= angvel;
+            T_PositionMSg.linearAccel[3]= linaccel;
+            T_PositionMsg.angularAccel[3]= angaccel;
+
+    //send message to flightgear server once encoded
+            //MsgId == FGFS::POS_DATA
+
+    m_DataSocket->sendto (T_PositionMsg, sizeof (T_PositionMsg), 0, sc_ip);
+
+
 
     //////////////////////////////////////////////////////
     // TODO: Create XDR packet from state_ variable.  We can leverage the
