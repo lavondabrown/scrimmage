@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libUnicycleControllerDirect_plugin.so.0 -o ../../../../plugin_libs/libUnicycleControllerDirect_plugin.so.0.0.1 CMakeFiles/UnicycleControllerDirect_plugin.dir/UnicycleControllerDirect.cpp.o 

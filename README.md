@@ -211,10 +211,10 @@ build FGMS according to the instructions at:
 https://github.com/FlightGear/fgms
 
 The FGMS plugin interacts with Scrimmage to receive the state variables of each
-entity. To build FGMS, you have to provide cmake with the path to the FGMS source
-tree:
+entity. To build FGMS, you have to provide cmake with the path to the FGMS root
+source:
 
-    cmake .. -DFGMS_SOURCE_TREE_BASE=/path/to/fgms
+    cmake .. -DFGMS_ROOT_SEARCH=/path/to/fgms
 
 ## Download SCRIMMAGE Docker Image
 

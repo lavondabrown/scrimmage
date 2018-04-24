@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libArduPilot_plugin.so.0 -o ../../../../plugin_libs/libArduPilot_plugin.so.0.0.1 CMakeFiles/ArduPilot_plugin.dir/ArduPilot.cpp.o -Wl,-rpath,/home/lbrown62/scrimmage/scrimmage/cmake-build-debug/plugin_libs: ../../../../plugin_libs/libMultirotor_plugin.so.0.0.1 

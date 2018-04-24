@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libMultirotorControllerOmega_plugin.so.0 -o ../../../../plugin_libs/libMultirotorControllerOmega_plugin.so.0.0.1 CMakeFiles/MultirotorControllerOmega_plugin.dir/MultirotorControllerOmega.cpp.o -Wl,-rpath,/home/lbrown62/scrimmage/scrimmage/cmake-build-debug/plugin_libs: ../../../../plugin_libs/libMultirotor_plugin.so.0.0.1 

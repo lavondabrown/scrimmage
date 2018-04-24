@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libRigidBody6DOFControllerPID_plugin.so.0 -o ../../../../plugin_libs/libRigidBody6DOFControllerPID_plugin.so.0.0.1 CMakeFiles/RigidBody6DOFControllerPID_plugin.dir/RigidBody6DOFControllerPID.cpp.o 

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libWaypointFollower_plugin.so.0 -o ../../../../plugin_libs/libWaypointFollower_plugin.so.0.0.1 CMakeFiles/WaypointFollower_plugin.dir/WaypointFollower.cpp.o -Wl,-rpath,/home/lbrown62/scrimmage/scrimmage/cmake-build-debug/plugin_libs: ../../../../plugin_libs/libWaypointGenerator_plugin.so.0.0.1 

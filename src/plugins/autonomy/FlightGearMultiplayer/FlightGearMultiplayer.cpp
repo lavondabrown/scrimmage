@@ -49,11 +49,6 @@
 
 #include <GeographicLib/LocalCartesian.hpp>
 
-#include <3rd-partyfgms/src/MultiPlayer/tiny_xdr.hxx>
-#include <3rd-party/fgms/src/MultiPlayer/mpmessages.hxx>
-#include <3rd-party/fgms/src/server/fg_server.hxx>
-#include <3rd-party/fgms/src/server/fg_list.hxx>
-
 using std::cout;
 using std::endl;
 
@@ -70,10 +65,11 @@ FlightGearMultiplayer::FlightGearMultiplayer() {
 }
 
 void FlightGearMultiplayer::init(std::map<std::string, std::string> &params) {
-     double server_ip = sc::get<std::string>("server_ip", params, "127.0.0.1");
-     int server_port = sc::get<int>("server_port", params, 5000);
+     //double server_ip = sc::get<std::string>("server_ip", params, "127.0.0.1");
+     //int server_port = sc::get<int>("server_port", params, 5000);
+    const sc_ip;
+    get_vec(sc_ip)
 
-     const sc_ip;
 
     // TODO: Open a socket to the multiplayer server
 
@@ -128,6 +124,15 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
                                    state_->pos()(2),
                                    lat, lon, alt);
 
+    float velx, vel2, vel3;
+    parent_->projection()->Reverse(state_->vel()(0), state_->vel()(1),
+                                   state_->vel()(2),
+                                   vel1, vel2, vel3);
+    float ang_vel1, ang_vel2, ang_vel3;
+    parent_->projection()->Reverse(state_->ang_vel()(0), state_->ang_vel()(1),
+                                   state_->ang_vel()(2),
+                                   lat, lon, alt);
+
     // need to find corresponding values on scrimmage state_variable
 
    // send(client, lat, strlen(lat) , 0 );
@@ -150,13 +155,13 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     float Ori = XDR_encode<float> ();
     float Ori = XDR_encode<float> ();
 
-    float linvel = XDR_encode<float> ();
-    float linvel = XDR_encode<float> ();
-    float linvel = XDR_encode<float> ();
+    float linvel = XDR_encode<float> (velX);
+    float linvel = XDR_encode<float> (velY);
+    float linvel = XDR_encode<float> (velZ);
 
-    float angvel = XDR_encode<float> ();
-    float angvel = XDR_encode<float> ();
-    float angvel = XDR_encode<float> ();
+    float angvel = XDR_encode<float> (ang_vel1);
+    float angvel = XDR_encode<float> (ang_vel2);
+    float angvel = XDR_encode<float> (ang_vel3);
 
     float linaccel = XDR_encode<float> ();
     float linaccel = XDR_encode<float> ();
@@ -166,23 +171,22 @@ bool FlightGearMultiplayer::step_autonomy(double t, double dt) {
     float angaccel = XDR_encode<float> ();
     float angaccel = XDR_encode<float> ();
 
-
-
-            //flightgear position msg struct
-            T_PositionMsg.Model = model;
-            T_PositionMsg.time = time;
-            T_PositionMsg.lag = lag;
-            T_positionMsg.position[3] = Pos;
-            T_positionMsg.orientation[3]= Ori;
-            T_positionMsg.linearVel[3]= linvel;
-            T_PositionMsg.angularVel[3]= angvel;
-            T_PositionMSg.linearAccel[3]= linaccel;
-            T_PositionMsg.angularAccel[3]= angaccel;
+    //flightgear position msg struct
+    struct T_PositionMsg sc_pos;
+    sc_pos.Model = model;
+    sc_pos.time = time;
+    sc_pos.lag = lag;
+    sc_pos.position[3] = Pos;
+    sc_pos.orientation[3]= Ori;
+    sc_pos.linearVel[3]= linvel;
+    sc_pos.angularVel[3]= angvel;
+    sc_pos.linearAccel[3]= linaccel;
+    sc_pos.angularAccel[3]= angaccel;
 
     //send message to flightgear server once encoded
             //MsgId == FGFS::POS_DATA
 
-    m_DataSocket->sendto (T_PositionMsg, sizeof (T_PositionMsg), 0, sc_ip);
+    m_DataSocket->sendto (sc_pos, sizeof (sc_pos), 0, sc_ip);
 
 
 

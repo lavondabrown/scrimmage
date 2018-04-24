@@ -1,8 +1,8 @@
 # TODO Find fgms code. include_directories() to point at the ./fgms/src
 # directory. Also, get the libraries that are built by fgms and allow them to
 # be used in the target_link_libraries below:
-find_package(FGMS QUIET)
-message("============> HELLO!!! ${FGMS_FOUND}")
+find_package(FGMS)
+message("============> HELLO!!! [Plugin CMakeLists.txt] ${FGMS_FOUND}")
 if(NOT FGMS_FOUND)
     return()
 endif()
