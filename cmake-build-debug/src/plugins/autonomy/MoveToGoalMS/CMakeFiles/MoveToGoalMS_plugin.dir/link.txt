@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libMoveToGoalMS_plugin.so.0 -o ../../../../plugin_libs/libMoveToGoalMS_plugin.so.0.0.1 CMakeFiles/MoveToGoalMS_plugin.dir/MoveToGoalMS.cpp.o 

@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libJSBSimModelControllerDirect_plugin.so.0 -o ../../../../plugin_libs/libJSBSimModelControllerDirect_plugin.so.0.0.1 CMakeFiles/JSBSimModelControllerDirect_plugin.dir/JSBSimModelControllerDirect.cpp.o 

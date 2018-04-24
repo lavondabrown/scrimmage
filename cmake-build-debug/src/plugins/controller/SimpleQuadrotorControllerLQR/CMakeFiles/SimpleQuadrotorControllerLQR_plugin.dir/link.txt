@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSimpleQuadrotorControllerLQR_plugin.so.0 -o ../../../../plugin_libs/libSimpleQuadrotorControllerLQR_plugin.so.0.0.1 CMakeFiles/SimpleQuadrotorControllerLQR_plugin.dir/SimpleQuadrotorControllerLQR.cpp.o 

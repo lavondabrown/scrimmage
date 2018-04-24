@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSingleIntegrator_plugin.so.0 -o ../../../../plugin_libs/libSingleIntegrator_plugin.so.0.0.1 CMakeFiles/SingleIntegrator_plugin.dir/SingleIntegrator.cpp.o 

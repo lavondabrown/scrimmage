@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libUUV6DOF_plugin.so.0 -o ../../../../plugin_libs/libUUV6DOF_plugin.so.0.0.1 CMakeFiles/UUV6DOF_plugin.dir/UUV6DOF.cpp.o 

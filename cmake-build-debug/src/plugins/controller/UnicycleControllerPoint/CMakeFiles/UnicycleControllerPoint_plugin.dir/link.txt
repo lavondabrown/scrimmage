@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libUnicycleControllerPoint_plugin.so.0 -o ../../../../plugin_libs/libUnicycleControllerPoint_plugin.so.0.0.1 CMakeFiles/UnicycleControllerPoint_plugin.dir/UnicycleControllerPoint.cpp.o 

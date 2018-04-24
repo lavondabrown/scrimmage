@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSingleIntegratorControllerWaypoint_plugin.so.0 -o ../../../../plugin_libs/libSingleIntegratorControllerWaypoint_plugin.so.0.0.1 CMakeFiles/SingleIntegratorControllerWaypoint_plugin.dir/SingleIntegratorControllerWaypoint.cpp.o 

@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSimpleAircraftControllerPID_plugin.so.0 -o ../../../../plugin_libs/libSimpleAircraftControllerPID_plugin.so.0.0.1 CMakeFiles/SimpleAircraftControllerPID_plugin.dir/SimpleAircraftControllerPID.cpp.o 

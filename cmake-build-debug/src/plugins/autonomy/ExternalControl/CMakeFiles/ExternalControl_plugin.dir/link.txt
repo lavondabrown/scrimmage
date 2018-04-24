@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libExternalControl_plugin.so.0 -o ../../../../plugin_libs/libExternalControl_plugin.so.0.0.1 CMakeFiles/ExternalControl_plugin.dir/ExternalControl.cpp.o CMakeFiles/ExternalControl_plugin.dir/ExternalControlClient.cpp.o 

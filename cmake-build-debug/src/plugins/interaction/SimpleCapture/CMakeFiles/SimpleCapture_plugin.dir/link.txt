@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -Wall  -g -Wall   -shared -Wl,-soname,libSimpleCapture_plugin.so.0 -o ../../../../plugin_libs/libSimpleCapture_plugin.so.0.0.1 CMakeFiles/SimpleCapture_plugin.dir/SimpleCapture.cpp.o 
