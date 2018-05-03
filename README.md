@@ -202,14 +202,19 @@ contact information, and receive desired state from the IvP Helm. To build
 MOOSAutonomy, you have to provide cmake with the path to the moos-ivp source
 tree:
 
-    cmake .. -DMOOSIVP_SOURCE_TREE_BASE=/path/to/moos-ivp
+    $ cmake .. -DMOOSIVP_SOURCE_TREE_BASE=/path/to/moos-ivp
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> upstream/master
 ## FlightGear Multiplayer Server (FGMS) Integration
 
 If you want to use FGMS with SCRIMMAGE, you will first need to download and
 build FGMS according to the instructions at:
 https://github.com/FlightGear/fgms
 
+<<<<<<< HEAD
 The FGMS plugin interacts with Scrimmage to receive the state variables of each
 entity. To build FGMS, you have to provide cmake with the path to the FGMS root
 source:
@@ -217,6 +222,24 @@ source:
     cmake .. -DFGMS_ROOT_SEARCH=/path/to/fgms
 
 ## Download SCRIMMAGE Docker Image
+=======
+Clone the flight gear multiplayer server repository and build it:
+
+    $ git clone https://github.com/FlightGear/fgms.git
+    $ cd fgms
+    $ git checkout 6669ac222b9f6ca34b0d56ba1bc6cac9cc0324b2
+    $ mkdir build && cd build
+    $ cmake .. -DBUILD_SHARED_LIB=ON
+    $ make
+
+The FGMS plugin interacts with SCRIMMAGE to receive the state variables of each
+entity. To build FGMS, you have to provide SCRIMMAGE's CMake project the path
+to the FGMS root source:
+
+    $ cmake .. -DFGMS_SOURCE_TREE_BASE=/path/to/fgms
+
+## Running SCRIMMAGE inside of Docker
+>>>>>>> upstream/master
 
 The SCRIMMAGE docker image is pushed to a public repository after a successful
 build on Travis. If docker is installed on your machine, you can obtain the
@@ -224,10 +247,33 @@ SCRIMMAGE docker image by running the following command:
 
     $ docker pull syllogismrxs/scrimmage:latest
 
-Now you can run an instance of the SCRIMMAGE docker image and run SCRIMMAGE in
-headless mode:
+You can pass mission files from your host machine to the `scrimmage` executable
+inside of the docker container with the following command:
 
-    $ docker run -it syllogismrxs/scrimmage:latest /bin/bash
+    $ cd /path/to/scrimmage/missions
+    $ docker run --name my-scrimmage \
+        -v ${PWD}/straight_jsbsim.xml:/straight_jsbsim.xml \
+        syllogismrxs/scrimmage:latest /straight_jsbsim.xml
+
+The previous command mounts the `straight_jsbsim.xml` mission file on your host
+machine into the scrimmage container and then the `/straight_jsbsim.xml`
+portion at the end of the command overwrites the default docker `CMD`, which is
+defined in the Dockerfile. Finally, the `scrimmage` executable is passed the
+`/straight_jsbsim.xml` mission file.
+
+Since we provided a name for our container, we can easily extract the SCRIMMAGE
+log files from the docker container:
+
+    $ docker cp my-scrimmage:/root/.scrimmage/logs .
+
+If you need to drop into a shell inside of the scrimmage container, you will
+need to overwrite the docker image's ENTRYPOINT.
+
+    $ docker run -it --entrypoint="/bin/bash" syllogismrxs/scrimmage:latest
+
+Once inside of the container, you will need to source the `setup.bash` file
+manually before running a mission.
+
     $ source ~/.scrimmage/setup.bash
     $ scrimmage ./missions/straight-no-gui.xml
 

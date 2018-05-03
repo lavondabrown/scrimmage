@@ -39,14 +39,12 @@
 
 #include <scrimmage/plugins/motion/SingleIntegrator/SingleIntegrator.h>
 
+#include <cmath>
+
 REGISTER_PLUGIN(scrimmage::MotionModel, scrimmage::motion::SingleIntegrator, SingleIntegrator_plugin)
 
 namespace scrimmage {
 namespace motion {
-
-namespace sc = scrimmage;
-
-namespace pl = std::placeholders;
 
 enum ModelParams {
     X = 0,
@@ -57,17 +55,24 @@ enum ModelParams {
     MODEL_NUM_ITEMS
 };
 
-SingleIntegrator::SingleIntegrator() {
+SingleIntegrator::SingleIntegrator() :
+        vel_x_idx_(0), vel_y_idx_(0), vel_z_idx_(0),
+        vel_x_(NAN), vel_y_(NAN), vel_z_(NAN) {
     x_.resize(MODEL_NUM_ITEMS);
 }
 
 bool SingleIntegrator::init(std::map<std::string, std::string> &info,
                             std::map<std::string, std::string> &params) {
+
+    vel_x_idx_ = vars_.declare(VariableIO::Type::velocity_x, VariableIO::Direction::In);
+    vel_y_idx_ = vars_.declare(VariableIO::Type::velocity_y, VariableIO::Direction::In);
+    vel_z_idx_ = vars_.declare(VariableIO::Type::velocity_z, VariableIO::Direction::In);
+
     x_[X] = std::stod(info["x"]);
     x_[Y] = std::stod(info["y"]);
     x_[Z] = std::stod(info["z"]);
 
-    x_[HEADING] = sc::Angles::deg2rad(std::stod(info["heading"]));
+    x_[HEADING] = Angles::deg2rad(std::stod(info["heading"]));
     x_[PITCH] = 0;
 
     state_->vel() << 0, 0, 0;
@@ -78,7 +83,10 @@ bool SingleIntegrator::init(std::map<std::string, std::string> &info,
 }
 
 bool SingleIntegrator::step(double t, double dt) {
-    ctrl_u_ = std::static_pointer_cast<Controller>(parent_->controllers().back())->u();
+
+    vel_x_ = vars_.input(vel_x_idx_);
+    vel_y_ = vars_.input(vel_y_idx_);
+    vel_z_ = vars_.input(vel_z_idx_);
 
     x_[X] = state_->pos()(0);
     x_[Y] = state_->pos()(1);
@@ -110,9 +118,10 @@ bool SingleIntegrator::step(double t, double dt) {
 }
 
 void SingleIntegrator::model(const vector_t &x , vector_t &dxdt , double t) {
-    dxdt[X] = ctrl_u_(X);
-    dxdt[Y] = ctrl_u_(Y);
-    dxdt[Z] = ctrl_u_(Z);
+    dxdt[X] = vel_x_;
+    dxdt[Y] = vel_y_;
+    dxdt[Z] = vel_z_;
 }
+
 } // namespace motion
 } // namespace scrimmage

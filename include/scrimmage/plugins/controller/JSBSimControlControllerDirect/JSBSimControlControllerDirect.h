@@ -33,21 +33,23 @@
 #ifndef INCLUDE_SCRIMMAGE_PLUGINS_CONTROLLER_JSBSIMCONTROLCONTROLLERDIRECT_JSBSIMCONTROLCONTROLLERDIRECT_H_
 #define INCLUDE_SCRIMMAGE_PLUGINS_CONTROLLER_JSBSIMCONTROLCONTROLLERDIRECT_JSBSIMCONTROLCONTROLLERDIRECT_H_
 
-#include <scrimmage/plugins/motion/JSBSimControl/JSBSimControl.h>
+#include <scrimmage/motion/Controller.h>
 
 #include <map>
 #include <string>
 
 namespace scrimmage {
 namespace controller {
-class JSBSimControlControllerDirect : public motion::JSBSimControl::Controller {
+class JSBSimControlControllerDirect : public scrimmage::Controller {
  public:
     virtual void init(std::map<std::string, std::string> &params);
     virtual bool step(double t, double dt);
-    virtual Eigen::Vector4d &u() {return u_;}
 
  protected:
-    Eigen::Vector4d u_;
+    int aileron_idx_;
+	int elevator_idx_;
+	int rudder_idx_;
+	int throttle_idx_;
 };
 } // namespace controller
 } // namespace scrimmage

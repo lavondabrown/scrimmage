@@ -35,6 +35,9 @@ and match between the two paradigms for a single entity.
     user types ``b`` into the gui. This allows the user to ensure that the
     simulation's initial conditions are correct before running simulation since
     the gui can launch after the actual simulation begins execution.
+  - ``motion_multiplier`` : set to an integer greater than or equal to 1.
+      If not 1, scrimmage will run controller and motion plugins
+      multiple times for each timestep.
 
 - ``stream_port`` : When ``network_gui`` is enabled, GRPC messages of the
   positions and orientations of SCRIMMAGE entities will be streamed to this
@@ -69,7 +72,7 @@ and match between the two paradigms for a single entity.
   and texture data. This is typically located at:
   ``$SCRIMMAGE_DATA_PATH/gui/terrain``.
 
-- ``background-color`` : The visualization background color defined in RED,
+- ``background_color`` : The visualization background color defined in RED,
   GREEN, BLUE order.
 
 - ``gui_update_period`` : The gui update period in milliseconds. Providing a

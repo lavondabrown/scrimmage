@@ -89,6 +89,7 @@ class MissionParse {
     double dt();
     double motion_multiplier();
     double time_warp();
+    void set_time_warp(double warp);
     bool start_paused();
 
     bool parse_terrain();
@@ -110,6 +111,7 @@ class MissionParse {
     std::map<std::string, int> & entity_name_to_id();
 
     bool enable_gui();
+    void set_enable_gui(bool enable);
     bool network_gui();
 
     AttributeMap &attributes();
@@ -137,8 +139,10 @@ class MissionParse {
 
     std::shared_ptr<scrimmage_proto::UTMTerrain> & utm_terrain();
 
+    std::string get_mission_filename();
+
  protected:
-    std::string mission_filename_;
+    std::string mission_filename_ = "";
 
     double t0_ = 0;
     double tend_ = 50;

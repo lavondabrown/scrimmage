@@ -34,10 +34,37 @@
 
 #include <Eigen/Dense>
 
+#include <iostream>
 #include <map>
 #include <string>
 
 namespace scrimmage {
+
+std::map<VariableIO::Type, std::string>VariableIO::type_map_ = {
+    {VariableIO::Type::desired_altitude, "desired_altitude"},
+    {VariableIO::Type::desired_speed, "desired_speed"},
+    {VariableIO::Type::desired_heading, "desired_heading"},
+    {VariableIO::Type::desired_roll, "desired_roll"},
+    {VariableIO::Type::desired_pitch, "desired_pitch"},
+    {VariableIO::Type::desired_turn_rate, "desired_turn_rate"},
+    {VariableIO::Type::desired_pitch_rate, "desired_pitch_rate"},
+    {VariableIO::Type::desired_roll_rate, "desired_roll_rate"},
+    {VariableIO::Type::speed, "speed"},
+    {VariableIO::Type::throttle, "throttle"},
+    {VariableIO::Type::elevator, "elevator"},
+    {VariableIO::Type::aileron, "aileron"},
+    {VariableIO::Type::rudder, "rudder"},
+    {VariableIO::Type::turn_rate, "turn_rate"},
+    {VariableIO::Type::pitch_rate, "pitch_rate"},
+    {VariableIO::Type::roll_rate, "roll_rate"},
+    {VariableIO::Type::velocity_x, "velocity_x"},
+    {VariableIO::Type::velocity_y, "velocity_y"},
+    {VariableIO::Type::velocity_z, "velocity_z"},
+    {VariableIO::Type::forward_acceleration, "forward_acceleration"},
+    {VariableIO::Type::position_x, "position_x"},
+    {VariableIO::Type::position_y, "position_y"},
+    {VariableIO::Type::position_z, "position_z"},
+};
 
 VariableIO::VariableIO() : input_(std::make_shared<Eigen::VectorXd>()),
                            output_(std::make_shared<Eigen::VectorXd>()) {
@@ -53,6 +80,7 @@ std::map<std::string, int> & VariableIO::input_variable_index() {
 
 int VariableIO::add_input_variable(std::string &var) {
     // If the variable already exists, return its existing index
+    declared_input_variables_.insert(var);
     auto it = input_variable_index_.find(var);
     if (it != input_variable_index_.end()) {
         return it->second;
@@ -68,6 +96,7 @@ int VariableIO::add_input_variable(std::string &var) {
 
 int VariableIO::add_output_variable(std::string &var) {
     // If the variable already exists, return its existing index
+    declared_output_variables_.insert(var);
     int idx;
     auto it = output_variable_index_.find(var);
     if (it != output_variable_index_.end()) {
@@ -88,6 +117,17 @@ int VariableIO::declare(std::string var, Direction dir) {
     }
 }
 
+int VariableIO::declare(Type type, Direction dir) {
+    std::string var("");
+    auto it = type_map_.find(type);
+    if (it == type_map_.end()) {
+        std::cout << "Warning: Use of invalid VariableIO::Type" << std::endl;
+    } else {
+        var = it->second;
+    }
+    return declare(var, dir);
+}
+
 double VariableIO::input(int i) {
     return (*input_)(i);
 }
@@ -105,6 +145,7 @@ double VariableIO::output(int i) {
 }
 
 void connect(VariableIO &output, VariableIO &input) {
+    output.output_variable_index() = input.input_variable_index();
     output.output_ = input.input_;
 }
 
@@ -116,4 +157,19 @@ bool VariableIO::exists(std::string var, Direction dir) {
     }
 }
 
+bool VariableIO::exists(Type type, Direction dir) {
+    auto it = type_map_.find(type);
+    if (it == type_map_.end()) {
+        return false;
+    }
+    return exists(it->second, dir);
+}
+
+std::set<std::string> VariableIO::declared_input_variables() {
+    return declared_input_variables_;
+}
+
+std::set<std::string> VariableIO::declared_output_variables() {
+    return declared_output_variables_;
+}
 } // namespace scrimmage

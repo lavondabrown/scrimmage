@@ -33,6 +33,8 @@
 #ifndef INCLUDE_SCRIMMAGE_PLUGIN_MANAGER_PLUGIN_H_
 #define INCLUDE_SCRIMMAGE_PLUGIN_MANAGER_PLUGIN_H_
 
+#include <Eigen/Dense>
+
 #include <scrimmage/common/VariableIO.h>
 #include <scrimmage/pubsub/PubSub.h>
 #include <scrimmage/pubsub/Subscriber.h>
@@ -83,10 +85,10 @@ class Plugin : public std::enable_shared_from_this<Plugin> {
     /* Homogeneous transform from parent link */
     StatePtr transform() { return transform_; }
 
-    virtual void set_id_to_team_map(std::shared_ptr<std::unordered_map<int, int> > &lookup)
+    virtual void set_id_to_team_map(std::shared_ptr<std::unordered_map<int, int>> lookup)
     { id_to_team_map_ = lookup; }
 
-    virtual void set_id_to_ent_map(std::shared_ptr<std::unordered_map<int, EntityPtr>> &lookup)
+    virtual void set_id_to_ent_map(std::shared_ptr<std::unordered_map<int, EntityPtr>> lookup)
     { id_to_ent_map_ = lookup; }
 
     std::list<scrimmage_proto::ShapePtr> &shapes();
@@ -129,7 +131,6 @@ class Plugin : public std::enable_shared_from_this<Plugin> {
     void set_time(std::shared_ptr<const Time> time) { time_ = time; }
 
  protected:
-    static int plugin_count_;
     std::string name_;
     EntityPtr parent_;
 
@@ -145,6 +146,9 @@ class Plugin : public std::enable_shared_from_this<Plugin> {
 
     std::list<SubscriberBasePtr> subs_;
     std::shared_ptr<const Time> time_;
+
+ public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 using PluginPtr = std::shared_ptr<Plugin>;

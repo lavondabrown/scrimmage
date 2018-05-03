@@ -41,9 +41,20 @@
 #include <scrimmage/math/State.h>
 #include <scrimmage/entity/Entity.h>
 #include <scrimmage/plugin_manager/RegisterPlugin.h>
+#include <scrimmage/proto/Shape.pb.h>
+#include <scrimmage/proto/ProtoConversions.h>
+
+#include <scrimmage/plugins/motion/JSBSimModel/FGOutputFGMod.h>
+
+#include <iomanip>
+#include <iostream>
 
 #include <boost/algorithm/clamp.hpp>
 #include <GeographicLib/LocalCartesian.hpp>
+
+using std::cout;
+using std::cerr;
+using std::endl;
 
 #define meters2feet 3.28084
 #define feet2meters (1.0 / meters2feet)
@@ -77,11 +88,16 @@ std::tuple<int, int, int> JSBSimControl::version() {
 bool JSBSimControl::init(std::map<std::string, std::string> &info,
                          std::map<std::string, std::string> &params) {
 
+
+    drawVel_ = sc::get<double>("drawVel", params, 1.0);
+    drawAngVel_ = sc::get<double>("drawAngVel", params, 10.0);
+    drawAcc_ = sc::get<double>("drawAcc", params, 1.0);
+
     // Setup variable index for controllers
-    thrust_idx_ = vars_.declare("thrust", VariableIO::Direction::In);
-    elevator_idx_ = vars_.declare("elevator", VariableIO::Direction::In);
-    aileron_idx_ = vars_.declare("aileron", VariableIO::Direction::In);
-    rudder_idx_ = vars_.declare("rudder", VariableIO::Direction::In);
+    throttle_idx_ = vars_.declare(VariableIO::Type::throttle, VariableIO::Direction::In);
+    elevator_idx_ = vars_.declare(VariableIO::Type::elevator, VariableIO::Direction::In);
+    aileron_idx_ = vars_.declare(VariableIO::Type::aileron, VariableIO::Direction::In);
+    rudder_idx_ = vars_.declare(VariableIO::Type::rudder, VariableIO::Direction::In);
 
     roll_pid_.set_parameters(std::stod(params["roll_kp"]),
                              std::stod(params["roll_ki"]),
@@ -110,20 +126,39 @@ bool JSBSimControl::init(std::map<std::string, std::string> &info,
 
     //////////
 
-    exec = std::make_shared<JSBSim::FGFDMExec>();
+    exec_ = std::make_shared<JSBSim::FGFDMExec>();
 
-    exec->SetDebugLevel(0);
-    exec->SetRootDir(info["JSBSIM_ROOT"]);
-    exec->SetAircraftPath("/aircraft");
-    exec->SetEnginePath("/engine");
-    exec->SetSystemsPath("/systems");
+    fg_out_enable_ = get<bool>("flightgear_output_enable", params, false);
+    if (fg_out_enable_) {
+        output_fg_ = new JSBSim::FGOutputFGMod(&(*exec_));
+        std::string ip = get<std::string>("flightgear_ip", params, "localhost");
+        std::string port = get<std::string>("flightgear_port", params, "5600");
+        std::string protocol = get<std::string>("flightgear_protocol", params, "UDP");
+        std::string name = ip + ":" + protocol + "/" + port; // localhost:UDP/5600
 
-    exec->LoadScript("/scripts/"+info["script_name"]);
+        output_fg_->SetIdx(0);
+        output_fg_->SetOutputName(name);
+        output_fg_->SetRateHz(60);
+        output_fg_->InitModel();
+    }
 
-    exec->SetRootDir(parent_->mp()->log_dir());
-    exec->SetRootDir(info["JSBSIM_ROOT"]);
+    exec_->SetDebugLevel(0);
+    exec_->SetRootDir(info["JSBSIM_ROOT"]);
+    exec_->SetAircraftPath("/aircraft");
+    exec_->SetEnginePath("/engine");
+    exec_->SetSystemsPath("/systems");
 
-    JSBSim::FGInitialCondition *ic = exec->GetIC();
+    exec_->LoadScript("/scripts/"+info["script_name"]);
+
+    exec_->SetRootDir(parent_->mp()->log_dir());
+    exec_->SetRootDir(info["JSBSIM_ROOT"]);
+
+    JSBSim::FGInitialCondition *ic = exec_->GetIC();
+    ic->SetVEastFpsIC(state_->vel()[1] * meters2feet);
+    ic->SetVNorthFpsIC(state_->vel()[0] * meters2feet);
+    ic->SetVDownFpsIC(-state_->vel()[2] * meters2feet);
+    ic->SetTerrainElevationFtIC(parent_->projection()->HeightOrigin() * meters2feet);
+
     if (info.count("latitude") > 0) {
         ic->SetLatitudeDegIC(std::stod(info["latitude"]));
     }
@@ -139,31 +174,44 @@ bool JSBSimControl::init(std::map<std::string, std::string> &info,
         ic->SetAltitudeASLFtIC(alt_asl_meters * meters2feet);
     }
 
-    exec->RunIC();
-    exec->Setdt(std::stod(info["dt"]));
-    exec->Run();
+    exec_->RunIC();
+    exec_->Setdt(std::stod(info["dt"]));
+    exec_->Run();
 
     // Get references to each of the nodes that hold properties that we
     // care about
-    JSBSim::FGPropertyManager* mgr = exec->GetPropertyManager();
+    JSBSim::FGPropertyManager* mgr = exec_->GetPropertyManager();
     longitude_node_ = mgr->GetNode("position/long-gc-deg");
     latitude_node_ = mgr->GetNode("position/lat-gc-deg");
     altitude_node_ = mgr->GetNode("position/h-sl-ft");
+    altitudeAGL_node_ = mgr->GetNode("position/h-agl-ft");
 
     roll_node_ = mgr->GetNode("attitude/roll-rad");
     pitch_node_ = mgr->GetNode("attitude/pitch-rad");
     yaw_node_ = mgr->GetNode("attitude/heading-true-rad");
 
-    ap_aileron_cmd_node_ = mgr->GetNode("ap/aileron_cmd");
-    ap_elevator_cmd_node_ = mgr->GetNode("ap/elevator_cmd");
-    ap_rudder_cmd_node_ = mgr->GetNode("ap/rudder_cmd");
-    ap_throttle_cmd_node_ = mgr->GetNode("ap/throttle-cmd-norm");
+    ap_aileron_cmd_node_ = mgr->GetNode("fcs/aileron-cmd-norm");
+    ap_elevator_cmd_node_ = mgr->GetNode("fcs/elevator-cmd-norm");
+    ap_rudder_cmd_node_ = mgr->GetNode("fcs/rudder-cmd-norm");
+    ap_throttle_cmd_node_ = mgr->GetNode("fcs/throttle-cmd-norm");
 
     vel_north_node_ = mgr->GetNode("velocities/v-north-fps");
     vel_east_node_ = mgr->GetNode("velocities/v-east-fps");
     vel_down_node_ = mgr->GetNode("velocities/v-down-fps");
 
     u_vel_node_ = mgr->GetNode("velocities/u-fps");
+
+
+    // angular velocity in ECEF frame
+    p_node_ = mgr->GetNode("velocities/p-rad_sec");
+    q_node_ = mgr->GetNode("velocities/q-rad_sec");
+    r_node_ = mgr->GetNode("velocities/r-rad_sec");
+
+    // acceleration at pilot location in body frame
+    ax_pilot_node_ = mgr->GetNode("accelerations/a-pilot-x-ft_sec2");
+    ay_pilot_node_ = mgr->GetNode("accelerations/a-pilot-y-ft_sec2");
+    az_pilot_node_ = mgr->GetNode("accelerations/a-pilot-z-ft_sec2");
+
 
     // Save state
     parent_->projection()->Forward(latitude_node_->getDoubleValue(),
@@ -181,11 +229,21 @@ bool JSBSimControl::init(std::map<std::string, std::string> &info,
         vel_north_node_->getDoubleValue() * feet2meters,
         -vel_down_node_->getDoubleValue() * feet2meters;
 
+    Eigen::Vector3d ang_vel_FLU(p_node_->getDoubleValue(),
+                               -q_node_->getDoubleValue(),
+                               -r_node_->getDoubleValue());
+    state_->ang_vel() = state_->quat().rotate(ang_vel_FLU);
+
+    Eigen::Vector3d a_FLU(ax_pilot_node_->getDoubleValue(),
+                         -ay_pilot_node_->getDoubleValue(),
+                         -az_pilot_node_->getDoubleValue());
+    linear_accel_body_ = state_->quat().rotate(a_FLU);
+
     return true;
 }
 
 bool JSBSimControl::step(double time, double dt) {
-    thrust_ = ba::clamp(vars_.input(thrust_idx_), -1.0, 1.0);
+    throttle_ = ba::clamp(vars_.input(throttle_idx_), -1.0, 1.0);
     delta_elevator_ = ba::clamp(vars_.input(elevator_idx_), -1.0, 1.0);
     delta_aileron_ = ba::clamp(vars_.input(aileron_idx_), -1.0, 1.0);
     delta_rudder_ = ba::clamp(vars_.input(rudder_idx_), -1.0, 1.0);
@@ -193,7 +251,7 @@ bool JSBSimControl::step(double time, double dt) {
     ap_aileron_cmd_node_->setDoubleValue(delta_aileron_);
     ap_elevator_cmd_node_->setDoubleValue(delta_elevator_);
     ap_rudder_cmd_node_->setDoubleValue(delta_rudder_);
-    ap_throttle_cmd_node_->setDoubleValue(thrust_);
+    ap_throttle_cmd_node_->setDoubleValue(throttle_);
 
     // double u_roll = u(0);
     // double u_pitch = u(1);
@@ -214,8 +272,12 @@ bool JSBSimControl::step(double time, double dt) {
     // // Yaw stabilizer
     // ap_rudder_cmd_node_->setDoubleValue(u_yaw);
 
-    exec->Setdt(dt);
-    exec->Run();
+    exec_->Setdt(dt);
+    exec_->Run();
+
+    if (fg_out_enable_) {
+        output_fg_->Print();
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Save state
@@ -229,6 +291,92 @@ bool JSBSimControl::step(double time, double dt) {
     state_->quat().set(roll_node_->getDoubleValue(),
                       -pitch_node_->getDoubleValue(),
                       ang::deg2rad(angles_from_jsbsim_.angle()));
+
+
+    state_->vel() << vel_east_node_->getDoubleValue() * feet2meters,
+        vel_north_node_->getDoubleValue() * feet2meters,
+        -vel_down_node_->getDoubleValue() * feet2meters;
+
+
+    Eigen::Vector3d ang_vel_FLU(p_node_->getDoubleValue(),
+                               -q_node_->getDoubleValue(),
+                               -r_node_->getDoubleValue());
+    state_->ang_vel() = state_->quat().rotate(ang_vel_FLU);
+
+    Eigen::Vector3d a_FLU(ax_pilot_node_->getDoubleValue() * feet2meters,
+                         -ay_pilot_node_->getDoubleValue() * feet2meters,
+                         -az_pilot_node_->getDoubleValue() * feet2meters);
+    // TODO: jsbsim returns specific force, but need to populate this value with
+    // acceleration. Need to make gravity not a hard-coded value or find a better
+    // way to handle this.
+    a_FLU = a_FLU + state_->quat().rotate_reverse(Eigen::Vector3d(0, 0, -9.81));
+    linear_accel_body_ = a_FLU;
+
+    Eigen::Vector3d a_ENU = state_->quat().rotate(a_FLU);
+
+
+
+    // draw velocity
+    if (drawVel_) {
+        sc::ShapePtr shape(new sp::Shape());
+        shape->set_type(sp::Shape::Line);
+        shape->set_opacity(1.0);
+        sc::add_point(shape, state_->pos() );
+        Eigen::Vector3d color(255, 255, 0);
+        sc::set(shape->mutable_color(), color[0], color[1], color[2]);
+        sc::add_point(shape, state_->pos() + state_->vel()*drawVel_ );
+        shapes_.push_back(shape);
+    }
+
+
+    // draw angular velocity
+    if (drawAngVel_) {
+        sc::ShapePtr shape(new sp::Shape());
+        shape->set_type(sp::Shape::Line);
+        shape->set_opacity(1.0);
+        sc::add_point(shape, state_->pos() );
+        Eigen::Vector3d color(0, 255, 255);
+        sc::set(shape->mutable_color(), color[0], color[1], color[2]);
+        sc::add_point(shape, state_->pos() + state_->ang_vel()*drawAngVel_ );
+        shapes_.push_back(shape);
+    }
+
+    // draw acceleration
+    if (drawAcc_) {
+        sc::ShapePtr shape(new sp::Shape());
+        shape->set_type(sp::Shape::Line);
+        shape->set_opacity(1.0);
+        sc::add_point(shape, state_->pos() );
+        Eigen::Vector3d color(0, 0, 255);
+        sc::set(shape->mutable_color(), color[0], color[1], color[2]);
+        sc::add_point(shape, state_->pos() + a_ENU*drawAcc_ );
+        shapes_.push_back(shape);
+    }
+
+
+#if 0
+    JSBSim::FGPropertyManager* mgr = exec_->GetPropertyManager();
+    cout << "--------------------------------------------------------" << endl;
+    cout << "  State information in JSBSImControl" << endl;
+    cout << "--------------------------------------------------------" << endl;
+    int prec = 5;
+    cout << std::setprecision(prec) << "time: " << time << endl;
+    cout << std::setprecision(prec) << "Altitude AGL: " << altitudeAGL_node_->getDoubleValue() * feet2meters << endl;
+    cout << std::setprecision(prec) << "WOW[0]: " << mgr->GetNode("gear/unit/WOW")->getDoubleValue() << endl;
+    cout << std::setprecision(prec) << "WOW[1]: " << mgr->GetNode("gear/unit[1]/WOW")->getDoubleValue() << endl;
+    cout << std::setprecision(prec) << "WOW[2]: " << mgr->GetNode("gear/unit[2]/WOW")->getDoubleValue() << endl;
+    cout << std::setprecision(prec) << "xAccel: " << linear_accel_body_(0) << endl;
+    cout << std::setprecision(prec) << "yAccel: " << linear_accel_body_(1) << endl;
+    cout << std::setprecision(prec) << "zAccel: " << linear_accel_body_(2) << endl;
+    cout << std::setprecision(prec) << "aileron cmd: " << delta_aileron_ << endl;
+    cout << std::setprecision(prec) << "elevator cmd: " << delta_elevator_ << endl;
+    cout << std::setprecision(prec) << "rudder cmd: " << delta_rudder_ << endl;
+    cout << std::setprecision(prec) << "throttle cmd: " << throttle_ << endl;
+    cout << std::setprecision(prec) << "aileron jsb: " << mgr->GetNode("fcs/right-aileron-pos-norm")->getDoubleValue() << endl;
+    cout << std::setprecision(prec) << "elevator jsb: " << mgr->GetNode("fcs/elevator-pos-norm")->getDoubleValue() << endl;
+    cout << std::setprecision(prec) << "rudder jsb: " << mgr->GetNode("fcs/rudder-pos-norm")->getDoubleValue() << endl;
+    cout << std::setprecision(prec) << "thrust jsb: " << mgr->GetNode("propulsion/engine/thrust-lbs")->getDoubleValue() << endl;
+#endif
 
     return true;
 }

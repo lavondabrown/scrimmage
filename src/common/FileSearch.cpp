@@ -31,6 +31,8 @@
  */
 
 #include <scrimmage/common/FileSearch.h>
+#include <scrimmage/parse/ParseUtils.h>
+
 #include <iostream>
 #include <unordered_set>
 
@@ -38,9 +40,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/algorithm/sort.hpp>
 #include <boost/range/adaptor/uniqued.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/optional.hpp>
 
 namespace fs = ::boost::filesystem;
 namespace ba = boost::adaptors;
@@ -49,6 +53,18 @@ namespace br = boost::range;
 namespace scrimmage {
 
 void FileSearch::clear() {cache_.clear();}
+
+boost::optional<std::string> FileSearch::find_mission(std::string mission, bool verbose) {
+    mission = expand_user(mission);
+    if (fs::exists(mission)) return mission;
+
+    std::string out;
+    auto search = [&](auto env) {return this->find_file(mission, "xml", env, out);};
+    std::list<std::string> env_vars
+        {"SCRIMMAGE_MISSION_PATH", "/usr/share/scrimmage", "/usr/local/share/scrimmage"};
+    auto it = br::find_if(env_vars, search);
+    return it == env_vars.end() ? boost::none : boost::optional<std::string>(out);
+}
 
 bool FileSearch::find_file(const std::string &search,
         std::string ext, const std::string &env_var, std::string &result,
@@ -125,13 +141,20 @@ void FileSearch::find_files(std::string env_var, const std::string &ext,
     out.clear();
 
     // Get the environment variable
-    const char* env_p = std::getenv(env_var.c_str());
-    if (env_p == NULL) {
-        std::cout << env_var << " environment variable not set" << std::endl;
-        return;
-    }
+    std::string env_path;
+    if (env_var.find("/") == std::string::npos) {
+        const char* env_p = std::getenv(env_var.c_str());
+        if (env_p == NULL) {
+            std::cout << env_var << " environment variable not set" << std::endl;
+            return;
+        }
 
-    std::string env_path = std::string(env_p);
+        env_path = std::string(env_p);
+    } else {
+        // assume is is a path rather than an environment variable
+        // since slashes cannot be in an environment variable
+        env_path = env_var;
+    }
 
     // Tokenize the path and loop through each directory
     boost::char_separator<char> sep(":");
@@ -142,8 +165,16 @@ void FileSearch::find_files(std::string env_var, const std::string &ext,
     std::vector<std::string> tok(tokens.begin(), tokens.end());
     br::sort(tok);
     auto it = tok.begin();
+
+    char native_path_sep = fs::path("/").make_preferred().native().at(0);
+
     while (it != tok.end()) {
-        auto starts_with = [&](auto &s) {return boost::starts_with(s, *it);};
+        auto starts_with = [&](std::string &s) {
+            return (*it == s) ||
+                (boost::starts_with(s, *it) &&
+                s.size() > it->size() &&
+                s.at(it->size()) == native_path_sep);
+        };
         tok.erase(std::remove_if(std::next(it), tok.end(), starts_with), tok.end());
         it++;
     }
@@ -170,7 +201,7 @@ void FileSearch::find_files(std::string env_var, const std::string &ext,
                 }
                 ++it;
             }
-        } else {
+        } else if (env_path != env_var) {
             std::cout << "Search path doesn't exist: " << t << std::endl;
         }
     }

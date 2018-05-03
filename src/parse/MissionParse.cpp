@@ -62,13 +62,13 @@ namespace rx = rapidxml;
 namespace scrimmage {
 
 bool MissionParse::parse(const std::string &filename) {
-    mission_filename_ = filename;
+    mission_filename_ = expand_user(filename);
 
     rapidxml::xml_document<> doc;
     std::ifstream file(mission_filename_.c_str());
 
     if (!file.is_open()) {
-        cout << "SCRIMMAGE mission file not found: " << filename << endl;
+        cout << "SCRIMMAGE mission file not found: " << mission_filename_ << endl;
         return false;
     }
 
@@ -117,19 +117,28 @@ bool MissionParse::parse(const std::string &filename) {
     // Parse entity_interaction tags
     for (rapidxml::xml_node<> *node = runscript_node->first_node("entity_interaction");
          node != 0; node = node->next_sibling("entity_interaction")) {
-        entity_interactions_.push_back(node->value());
+        // If a "name" is specified, use this name
+        rapidxml::xml_attribute<> *attr = node->first_attribute("name");
+        std::string name = (attr == 0) ? node->value() : attr->value();
+        entity_interactions_.push_back(name);
     }
 
     // Parse network name tags
     for (rapidxml::xml_node<> *node = runscript_node->first_node("network");
          node != 0; node = node->next_sibling("network")) {
-        network_names_.push_back(node->value());
+        // If a "name" is specified, use this name
+        rapidxml::xml_attribute<> *attr = node->first_attribute("name");
+        std::string name = (attr == 0) ? node->value() : attr->value();
+        network_names_.push_back(name);
     }
 
     // Parse metrics tags
     for (rapidxml::xml_node<> *node = runscript_node->first_node("metrics");
          node != 0; node = node->next_sibling("metrics")) {
-        metrics_.push_back(node->value());
+        // If a "name" is specified, use this name
+        rapidxml::xml_attribute<> *attr = node->first_attribute("name");
+        std::string name = (attr == 0) ? node->value() : attr->value();
+        metrics_.push_back(name);
     }
 
     // param_common name: tag: value
@@ -163,13 +172,20 @@ bool MissionParse::parse(const std::string &filename) {
         if (nm != "entity" && nm != "base"  && nm != "entity_common" && nm != "param_common") {
             params_[nm] = node->value();
 
+            rapidxml::xml_attribute<> *attr = node->first_attribute("name");
+            std::string name = (attr == 0) ? node->value() : attr->value();
+
+            std::string nm2 = nm == "entity_interaction" ? name : nm;
+            std::string nm3 = nm == "metrics" ? name : nm;
+            std::string nm4 = nm == "network" ? name : nm;
+
+            attributes_[nm2]["ORIGINAL_PLUGIN_NAME"] = node->value();
+            attributes_[nm3]["ORIGINAL_PLUGIN_NAME"] = node->value();
+            attributes_[nm4]["ORIGINAL_PLUGIN_NAME"] = node->value();
+
             // Loop through each node's attributes:
             for (rapidxml::xml_attribute<> *attr = node->first_attribute();
                  attr; attr = attr->next_attribute()) {
-
-                std::string nm2 = nm == "entity_interaction" ? node->value() : nm;
-                std::string nm3 = nm == "metrics" ? node->value() : nm;
-                std::string nm4 = nm == "network" ? node->value() : nm;
 
                 std::string attr_name = attr->name();
                 if (attr_name == "param_common") {
@@ -278,8 +294,6 @@ bool MissionParse::parse(const std::string &filename) {
                 node_name += std::to_string(orders[nm]["autonomy"]++);
             } else if (node_name == "sensor") {
                 node_name += std::to_string(orders[nm]["sensor"]++);
-            } else if (node_name == "controller") {
-                node_name += std::to_string(orders[nm]["controller"]++);
             }
 
             // Loop through each node's attributes:
@@ -311,7 +325,7 @@ bool MissionParse::parse(const std::string &filename) {
 
         rapidxml::xml_attribute<> *nm_attr = script_node->first_attribute("entity_common");
 
-        int autonomy_order = 0, sensor_order = 0, controller_order = 0;
+        int autonomy_order = 0, sensor_order = 0;
         if (nm_attr != 0) {
             std::string nm = nm_attr->value();
             auto it = entity_common.find(nm);
@@ -322,7 +336,6 @@ bool MissionParse::parse(const std::string &filename) {
                 entity_attributes_[ent_desc_id] = entity_common_attributes[nm];
                 autonomy_order = orders[nm]["autonomy"];
                 sensor_order = orders[nm]["sensor"];
-                controller_order = orders[nm]["controller"];
             }
         }
 
@@ -423,8 +436,6 @@ bool MissionParse::parse(const std::string &filename) {
                 nm += std::to_string(autonomy_order++);
             } else if (nm == "sensor") {
                 nm += std::to_string(sensor_order++);
-            } else if (nm == "controller") {
-                nm += std::to_string(controller_order++);
             }
 
             script_info[nm] = node->value();
@@ -617,23 +628,33 @@ bool MissionParse::create_log_dir() {
     // false.
     bool create_latest_dir = not(params_.count("create_latest_dir") > 0 &&
                                  str2bool(params_["create_latest_dir"]) == false);
+
     if (create_latest_dir) {
+        boost::system::error_code ec;
+        auto print_error = [&]() {
+            cout << "Error code value: " << ec.value() << endl;
+            cout << "Error code name: " << ec.category().name() << endl;
+            cout << "Error message: " << ec.message() << endl;
+        };
+        auto fs_err = [&](){return ec != boost::system::errc::success;};
+
         // Create a "latest" symlink to the directory
         // First, remove the latest symlink if it exists
         fs::path latest_sym(root_log_dir_ + std::string("/latest"));
         if (fs::is_symlink(latest_sym)) {
-            fs::remove(latest_sym);
+            fs::remove(latest_sym, ec);
+            if (fs_err()) {
+                cout << "WARNING: could not remove symlink to latest directory" << endl;
+                print_error();
+            }
         }
 
         // Create the symlink
-        boost::system::error_code ec;
         fs::create_directory_symlink(fs::path(log_dir_), latest_sym, ec);
-        if (ec.value() != boost::system::errc::success) {
+        if (fs_err()) {
             cout << "WARNING: Unable to create latest log file symlink" << endl;
             cout << "Couldn't create symlink log directory" << endl;
-            cout << "Error code value: " << ec.value() << endl;
-            cout << "Error code name: " << ec.category().name() << endl;
-            cout << "Error message: " << ec.message() << endl;
+            print_error();
         }
     }
 
@@ -803,4 +824,11 @@ std::shared_ptr<GeographicLib::LocalCartesian> MissionParse::projection()
 std::shared_ptr<scrimmage_proto::UTMTerrain> &MissionParse::utm_terrain()
 { return utm_terrain_; }
 
+std::string MissionParse::get_mission_filename() {
+    return mission_filename_;
+}
+
+void MissionParse::set_enable_gui(bool enable) {enable_gui_ = enable;}
+
+void MissionParse::set_time_warp(double warp) {time_warp_ = warp;}
 } // namespace scrimmage

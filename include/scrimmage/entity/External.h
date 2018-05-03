@@ -63,39 +63,49 @@ class External {
  public:
     External();
     EntityPtr &entity();
-    bool create_entity(const std::string &mission_file,
-                       int max_entities, int entity_id,
+    void setup_logging();
+    bool create_entity(int max_entities, int entity_id,
                        const std::string &entity_name);
 
     template <class AcceptFunc>
-    bool create_entity(const std::string &mission_file,
-                       int max_entities, int entity_id,
+    bool create_entity(int max_entities, int entity_id,
                        const std::string &entity_name,
                        AcceptFunc accept_func) {
 
-        const bool success =
-            create_entity(mission_file, max_entities, entity_id, entity_name);
+        if (!create_entity(max_entities, entity_id, entity_name)) return false;
+
         auto filter_func = [&](auto &p) {return !accept_func(p);};
         auto &a = entity_->autonomies();
         a.erase(std::remove_if(a.begin(), a.end(), filter_func), a.end());
 
-        auto &c = entity_->controllers();
-        c.erase(std::remove_if(c.begin(), c.end(), filter_func), c.end());
-        return success;
+        return true;
     }
 
+    bool create_interactions();
+
     double min_motion_dt = 1;
+    VariableIO vars;
     std::mutex mutex;
     DelayedTask update_contacts_task;
+    MissionParsePtr mp();
+    void send_messages();
 
  protected:
+    void update_ents();
     EntityPtr entity_;
+    std::list<EntityInteractionPtr> ent_inters_;
+    std::list<MetricsPtr> metrics_;
+
     PluginManagerPtr plugin_manager_;
     std::shared_ptr<Log> log_;
     double last_t_;
     PubSubPtr pubsub_;
     TimePtr time_;
     MissionParsePtr mp_;
+
+    std::shared_ptr<std::unordered_map<int, int>> id_to_team_map_;
+    std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map_;
+    std::list<EntityPtr> ents_;
 
  public:
     bool step(double t);
@@ -147,10 +157,12 @@ class External {
                 auto sub = std::dynamic_pointer_cast<SubscriberBase>(dev);
                 return [=](const boost::shared_ptr<RosType const> &ros_msg) {
                     using ScType = decltype(ros2sc(*ros_msg));
+                    call_update_contacts(ros::Time::now().toSec());
+                    mutex.lock();
                     auto sc_msg = std::make_shared<Message<ScType>>(ros2sc(*ros_msg));
-                    sub->add_msg(sc_msg);
                     sub->accept(sc_msg);
                     send_messages();
+                    mutex.unlock();
                 };
             }
         }
@@ -158,7 +170,7 @@ class External {
         std::cout << "Failed to create ROS to SCRIMMAGE subscriber (callback) " << std::endl;
         std::cout << "Network name: " << network_name << std::endl;
         std::cout << "Topic name: " << topic_name << std::endl;
-        return [=](const boost::shared_ptr<RosType const>&ros_msg) { };
+        return [=](const boost::shared_ptr<RosType const>&/*ros_msg*/) { };
     }
 
     template <class RosType, class ScrimmageResponseType,
@@ -291,7 +303,6 @@ class External {
 
  protected:
     void call_update_contacts(double t);
-    void send_messages();
     void update_time(double t);
 };
 

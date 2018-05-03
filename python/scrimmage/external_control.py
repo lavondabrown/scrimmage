@@ -134,7 +134,7 @@ class ScrimmageEnv(gym.Env):
         self.close()
         sys.exit(0)
 
-    def _reset(self):
+    def reset(self):
         """Restart scrimmage and return result."""
         self._clear_queues()
         self._terminate_scrimmage()
@@ -151,7 +151,7 @@ class ScrimmageEnv(gym.Env):
                 ret.append(self._return_action_result(i)[0])
             return ret
 
-    def _step(self, action):
+    def step(self, action):
         """Send action to SCRIMMAGE and return result."""
         def _step_single(i, space, a):
             if not isinstance(a, collections.Iterable):
@@ -276,6 +276,15 @@ class ScrimmageEnv(gym.Env):
         # print(cmd)
         return subprocess.Popen(cmd)
 
+    def close(self):
+        """Cleanup spawned threads and subprocesses.
+
+        The thread manages a GRPC server to communicate with scrimmage.  The
+        subprocess is the actual scrimmage instance.  This method needs to be
+        called in order to make sure a python instance exits cleanly.
+        """
+        self._close()
+
     def _close(self):
         """Cleanup spawned threads and subprocesses.
 
@@ -306,24 +315,14 @@ class ScrimmageEnv(gym.Env):
         shutdown the network to the autonomy in addition to sending a
         sigint.
         """
-        if self.scrimmage_process.returncode is None:
-            try:
-                os.remove(self.temp_mission_file)
-            except OSError:
-                pass
-
+        for queues in self.queues:
+            queues['action'].put(ExternalControl_pb2.Action(done=True))
+        self.scrimmage_process.poll()
+        while self.scrimmage_process.returncode is None:
             for queues in self.queues:
                 queues['action'].put(ExternalControl_pb2.Action(done=True))
-
-            try:
-                self.scrimmage_process.kill()
-                self.scrimmage_process.poll()
-                while self.scrimmage_process.returncode is None:
-                    self.scrimmage_process.poll()
-                    time.sleep(0.1)
-            except OSError:
-                print('could not terminate existing scrimmage process. '
-                      'It may have already shutdown.')
+            time.sleep(0.1)
+            self.scrimmage_process.poll()
 
 
 class ExternalControl(ExternalControl_pb2_grpc.ExternalControlServicer):
@@ -359,26 +358,27 @@ def _create_tuple_space(space_params):
     discrete_extrema = []
     continuous_extrema = []
 
-    def _append(param, dst_lst):
-        if param.num_dims != 1 and len(param.maximum) == 1:
-            # use same min/max for all dims
-            dst_lst += param.num_dims * [[param.minimum[0], param.maximum[0]]]
-        else:
-            # each min/max is specified individually
-            assert len(param.minimum) == len(param.maximum)
-            dst_lst += zip(list(param.minimum), list(param.maximum))
-
     for param in space_params.params:
         if param.discrete:
-            _append(param, discrete_extrema)
+            # openai discrete spaces take in the number of inputs, not the
+            # maximum
+            maximums = [int(m + 1) for m in list(param.maximum)]
+            if param.num_dims != 1 and len(maximums) == 1:
+                discrete_extrema += param.num_dims * [maximums[0]]
+            else:
+                discrete_extrema += maximums
         else:
-            _append(param, continuous_extrema)
+            if param.num_dims != 1 and len(param.maximum) == 1:
+                # use same min/max for all dims
+                continuous_extrema += \
+                    param.num_dims * [[param.minimum[0], param.maximum[0]]]
+            else:
+                # each min/max is specified individually
+                continuous_extrema += \
+                    zip(list(param.minimum), list(param.maximum))
 
-    # make sure that discrete entries are ints
-    discrete_extrema = [(int(mn), int(mx)) for mn, mx in discrete_extrema]
-
-    if len(discrete_extrema) == 1 and discrete_extrema[0][0] == 0:
-        discrete_space = gym.spaces.Discrete(discrete_extrema[0][1] + 1)
+    if len(discrete_extrema) == 1:
+        discrete_space = gym.spaces.Discrete(discrete_extrema[0])
     else:
         discrete_space = gym.spaces.MultiDiscrete(discrete_extrema)
 

@@ -33,7 +33,10 @@
 #ifndef INCLUDE_SCRIMMAGE_SIMCONTROL_SIMCONTROL_H_
 #define INCLUDE_SCRIMMAGE_SIMCONTROL_SIMCONTROL_H_
 
+#include <Eigen/Dense>
+
 #include <scrimmage/fwd_decl.h>
+
 #include <scrimmage/common/Timer.h>
 #include <scrimmage/common/DelayedTask.h>
 #include <scrimmage/common/FileSearch.h>
@@ -52,8 +55,6 @@
 #include <mutex> // NOLINT
 
 namespace scrimmage {
-
-typedef std::shared_ptr<scrimmage_proto::Shape> ShapePtr;
 
 typedef std::shared_ptr<scrimmage_proto::ContactVisual> ContactVisualPtr;
 
@@ -92,6 +93,8 @@ class SimControl {
     void set_time(double t);
     double t();
 
+    bool output_summary();
+    bool output_runtime();
     void setup_timer(double rate, double time_warp);
     void start_overall_timer();
     void start_loop_timer();
@@ -130,8 +133,8 @@ class SimControl {
  protected:
     // Key: Entity ID
     // Value: Team ID
-    std::shared_ptr<std::unordered_map<int, int> > id_to_team_map_;
-    std::shared_ptr<std::unordered_map<int, EntityPtr> > id_to_ent_map_;
+    std::shared_ptr<std::unordered_map<int, int>> id_to_team_map_;
+    std::shared_ptr<std::unordered_map<int, EntityPtr>> id_to_ent_map_;
 
     InterfacePtr incoming_interface_;
     InterfacePtr outgoing_interface_;
@@ -144,7 +147,7 @@ class SimControl {
 
     ContactMapPtr contacts_;
 
-    std::map<int, std::list<ShapePtr> > shapes_;
+    std::map<int, std::list<scrimmage_proto::ShapePtr>> shapes_;
 
     std::map<int, ContactVisualPtr> contact_visuals_;
 

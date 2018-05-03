@@ -32,10 +32,16 @@
 
 #ifndef INCLUDE_SCRIMMAGE_PLUGINS_AUTONOMY_FLIGHTGEARMULTIPLAYER_FLIGHTGEARMULTIPLAYER_H_
 #define INCLUDE_SCRIMMAGE_PLUGINS_AUTONOMY_FLIGHTGEARMULTIPLAYER_FLIGHTGEARMULTIPLAYER_H_
+
 #include <scrimmage/autonomy/Autonomy.h>
+#include <scrimmage/math/Angles.h>
+#include <scrimmage/math/Quaternion.h>
+#include <plib/netSocket.h>
 
 #include <string>
 #include <map>
+
+#include <GeographicLib/Geocentric.hpp>
 
 namespace scrimmage {
 namespace autonomy {
@@ -46,6 +52,15 @@ class FlightGearMultiplayer : public scrimmage::Autonomy {
     virtual bool step_autonomy(double t, double dt);
 
  protected:
+    std::string callsign_;
+    std::shared_ptr<netSocket> data_socket_;
+    netAddress net_address_;
+
+    std::shared_ptr<GeographicLib::Geocentric> earth_;
+
+    Angles angles_to_jsbsim_;
+
+    scrimmage::Quaternion fromLonLatRad(float lon, float lat);
 };
 } // namespace autonomy
 } // namespace scrimmage

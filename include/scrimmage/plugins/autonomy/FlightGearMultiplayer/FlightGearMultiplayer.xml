@@ -4,4 +4,8 @@
   <library>FlightGearMultiplayer_plugin</library>
   <server_ip>127.0.0.1</server_ip>
   <server_port>5000</server_port>
+<<<<<<< HEAD
+=======
+  <callsign>syllo</callsign>
+>>>>>>> upstream/master
 </params>

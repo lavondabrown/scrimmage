@@ -65,32 +65,22 @@ REGISTER_PLUGIN(scrimmage::Autonomy,
 namespace scrimmage {
 namespace autonomy {
 
-ArduPilot::ArduPilot()
-    : to_ardupilot_ip_("127.0.0.1")
-    , to_ardupilot_port_("5003")
-    , from_ardupilot_port_(5002) {
+ArduPilot::ArduPilot() :
+    to_ardupilot_ip_("127.0.0.1"),
+    to_ardupilot_port_("5003"),
+    angles_to_gps_(0, Angles::Type::EUCLIDEAN, Angles::Type::GPS),
+    from_ardupilot_port_(5002) {
 
     for (int i = 0; i < MAX_NUM_SERVOS; i++) {
         servo_pkt_.servos[i] = 0;
     }
-
-    angles_to_gps_.set_input_clock_direction(sc::Angles::Rotate::CCW);
-    angles_to_gps_.set_input_zero_axis(sc::Angles::HeadingZero::Pos_X);
-    angles_to_gps_.set_output_clock_direction(sc::Angles::Rotate::CW);
-    angles_to_gps_.set_output_zero_axis(sc::Angles::HeadingZero::Pos_Y);
 }
 
 void ArduPilot::init(std::map<std::string, std::string> &params) {
-    multirotor_ = std::dynamic_pointer_cast<sc::motion::Multirotor>(parent_->motion());
-    if (multirotor_ == nullptr) {
-        cout << "WARNING: MultirotorTests can't control the motion "
-             << "model for this entity." << endl;
-    }
 
-    desired_rotor_state_ = std::make_shared<sc::motion::MultirotorState>();
-    desired_rotor_state_->set_input_type(sc::motion::MultirotorState::InputType::PWM);
-    desired_rotor_state_->prop_input().resize(multirotor_->rotors().size());
-    desired_state_ = desired_rotor_state_;
+    desired_pwm_state_ = std::make_shared<sc::motion::PwmState>();
+    desired_pwm_state_->pwm_input().resize(MAX_NUM_SERVOS);
+    desired_state_ = desired_pwm_state_;
 
     // Get parameters for transmit socket (to ardupilot)
     to_ardupilot_ip_ = sc::get<std::string>("to_ardupilot_ip", params, "127.0.0.1");
@@ -155,18 +145,24 @@ bool ArduPilot::step_autonomy(double t, double dt) {
 
     // Copy the received servo commands into the desired state
     servo_pkt_mutex_.lock();
-    for (int i = 0; i < desired_rotor_state_->prop_input().size(); i++) {
-        desired_rotor_state_->prop_input()(i) = servo_pkt_.servos[i];
+    for (int i = 0; i < desired_pwm_state_->pwm_input().size(); i++) {
+        desired_pwm_state_->pwm_input()(i) = servo_pkt_.servos[i];
     }
     servo_pkt_mutex_.unlock();
 
-    desired_state_ = desired_rotor_state_;
+    desired_state_ = desired_pwm_state_;
 
     return true;
 }
 
 void ArduPilot::handle_receive(const boost::system::error_code& error,
                                std::size_t num_bytes) {
+
+    cout << "--------------------------------------------------------" << endl;
+    cout << "  Servo packets received from ArduPilot" << endl;
+    cout << "--------------------------------------------------------" << endl;
+
+    int prec = 9;
     if (error) {
         cout << "error: handle_receive" << endl;
     } else if (num_bytes != sizeof(servo_packet)) {
@@ -176,6 +172,8 @@ void ArduPilot::handle_receive(const boost::system::error_code& error,
         servo_pkt_mutex_.lock();
         for (unsigned int i = 0; i < num_bytes / sizeof(uint16_t); i++) {
             servo_pkt_.servos[i] = (recv_buffer_[i*2+1] << 8) + recv_buffer_[i*2];
+
+            cout << std::setprecision(prec) << "servo"<< i << ": " << servo_pkt_.servos[i] << endl;
         }
         servo_pkt_mutex_.unlock();
     }
@@ -195,6 +193,8 @@ ArduPilot::fdm_packet ArduPilot::state6dof_to_fdm_packet(
                                    fdm_pkt.longitude,
                                    fdm_pkt.altitude);
 
+    // convert everything to NED-FRU world and body frames
+
     // Heading conversion
     angles_to_gps_.set_angle(sc::Angles::rad2deg(state.quat().yaw()));
     fdm_pkt.heading = sc::Angles::deg2rad(angles_to_gps_.angle());
@@ -203,17 +203,17 @@ ArduPilot::fdm_packet ArduPilot::state6dof_to_fdm_packet(
     fdm_pkt.speedE = state.vel()(0);
     fdm_pkt.speedD = -state.vel()(2);
 
-    // Body frame linear acceleration
+    // Body frame linear acceleration FRU
     fdm_pkt.xAccel = state.linear_accel_body()(0);
     fdm_pkt.yAccel = -state.linear_accel_body()(1);
     fdm_pkt.zAccel = -state.linear_accel_body()(2);
 
-    // Body frame rotational velocities
+    // Body frame rotational velocities FRU
     fdm_pkt.rollRate = state.ang_vel_body()(0);
     fdm_pkt.pitchRate = -state.ang_vel_body()(1);
     fdm_pkt.yawRate = -state.ang_vel_body()(2);
 
-    // Global frame, roll, pitch, yaw
+    // Global frame, roll, pitch, yaw from NED to FRU
     fdm_pkt.roll = state.quat().roll();
     fdm_pkt.pitch = -state.quat().pitch();
     fdm_pkt.yaw = fdm_pkt.heading;

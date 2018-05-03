@@ -35,6 +35,7 @@
 
 #include <Eigen/Dense>
 
+#include <string>
 #include <vector>
 
 namespace sc = scrimmage;
@@ -46,13 +47,16 @@ class BoundaryInfo {
  public:
     enum class Type { Cuboid, Sphere };
 
-    BoundaryInfo() : type(Type::Cuboid), radius(100), center(0, 0, 0) {
+    BoundaryInfo() : type(Type::Cuboid), radius(100), center(0, 0, 0),
+        name(std::string("none")) {
     }
 
     Type type;
     double radius;
     Eigen::Vector3d center;
     std::vector<Eigen::Vector3d> points;
+    std::string name;
+    scrimmage::ID id;
 };
 } // namespace interaction
 } // namespace scrimmage

@@ -37,13 +37,17 @@
 #include <scrimmage/common/Time.h>
 #include <scrimmage/entity/External.h>
 #include <scrimmage/log/Log.h>
+#include <scrimmage/metrics/Metrics.h>
 #include <scrimmage/motion/Controller.h>
 #include <scrimmage/parse/MissionParse.h>
 #include <scrimmage/parse/ParseUtils.h>
 #include <scrimmage/plugin_manager/PluginManager.h>
 #include <scrimmage/pubsub/Network.h>
+#include <scrimmage/simcontrol/SimUtils.h>
+#include <scrimmage/simcontrol/EntityInteraction.h>
 
 #include <iostream>
+#include <iomanip>
 
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/LocalCartesian.hpp>
@@ -51,11 +55,14 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 using std::endl;
 using std::cout;
 
 namespace ba = boost::adaptors;
+namespace br = boost::range;
 
 namespace scrimmage {
 
@@ -66,15 +73,16 @@ External::External() :
     last_t_(NAN),
     pubsub_(std::make_shared<PubSub>()),
     time_(std::make_shared<Time>()),
-    mp_(std::make_shared<MissionParse>()) {
-}
+    mp_(std::make_shared<MissionParse>()),
+    id_to_team_map_(std::make_shared<std::unordered_map<int, int>>()),
+    id_to_ent_map_(std::make_shared<std::unordered_map<int, EntityPtr>>()) {}
 
-bool External::create_entity(const std::string &mission_file,
-                             int max_entities, int entity_id,
+bool External::create_entity(int max_entities, int entity_id,
                              const std::string &entity_name) {
 
-    if (!mp_->parse(expand_user(mission_file))) {
-        cout << "Failed to parse file: " << mission_file << endl;
+    if (mp_->get_mission_filename() == "") {
+        cout << "External::mp()->parse() has not been run yet, "
+            << "exiting External::create_entity()" << endl;
         return false;
     }
 
@@ -94,13 +102,24 @@ bool External::create_entity(const std::string &mission_file,
     }
 
     // Load the network names (don't need to load the network plugins)
+    pubsub_->pubs().clear();
+    pubsub_->subs().clear();
     for (std::string network_name : mp_->network_names()) {
         // Seed the pubsub with network names
-        pubsub_->add_network_name(network_name);
+        std::string aliased_name = network_name;
+        auto it = mp_->attributes().find(network_name);
+        if (it != mp_->attributes().end()) {
+            auto it2 = it->second.find("name");
+            if (it2 != it->second.end()) {
+                aliased_name = it2->second;
+            }
+        }
+        pubsub_->add_network_name(aliased_name);
     }
 
     std::map<std::string, std::string> info =
         mp_->entity_descriptions()[it_name_id->second];
+    info.erase("motion_model"); // we don't need to initialize this
 
     ContactMapPtr contacts = std::make_shared<ContactMap>();
     std::shared_ptr<RTree> rtree = std::make_shared<RTree>();
@@ -109,22 +128,72 @@ bool External::create_entity(const std::string &mission_file,
     FileSearchPtr file_search = std::make_shared<FileSearch>();
     entity_ = std::make_shared<Entity>();
 
-    mp_->create_log_dir();
-    log_->set_enable_log(true);
-    log_->init(mp_->log_dir(), Log::WRITE);
-
     RandomPtr random = std::make_shared<Random>();
     random->seed();
     entity_->set_random(random);
 
     AttributeMap &attr_map = mp_->entity_attributes()[it_name_id->second];
-    bool success =
+    bool ent_success =
         entity_->init(
             attr_map, info, contacts, mp_, mp_->projection(), entity_id,
             it_name_id->second, plugin_manager_, file_search, rtree, pubsub_,
             time_);
+    if (!ent_success) {
+        std::cout << "External::create_entity() failed on entity_->init()" << std::endl;
+        return false;
+    }
 
-    return success;
+    connect(entity_->controller()->vars(), vars);
+    if (!verify_io_connection(entity_->controller()->vars(), vars)) {
+        auto ctrl = entity_->controller();
+        std::cout << "VariableIO Error: "
+            << ctrl->name()
+            << " does not provide inputs required by the External class."
+            << std::endl;
+        print_io_error("External", ctrl->name(), vars);
+        std::cout << ctrl->name() << " currently provides the following: ";
+        br::copy(ctrl->vars().output_variable_index() | ba::map_keys,
+            std::ostream_iterator<std::string>(std::cout, ", "));
+        return false;
+    }
+
+    std::list<scrimmage_proto::ShapePtr> shapes;
+
+    SimUtilsInfo sim_info;
+    sim_info.mp = mp_;
+    sim_info.plugin_manager = plugin_manager_;
+    sim_info.file_search = file_search;
+    sim_info.rtree = rtree;
+    sim_info.pubsub = pubsub_;
+    sim_info.time = time_;
+    sim_info.id_to_team_map = id_to_team_map_;
+    sim_info.id_to_ent_map = id_to_ent_map_;
+
+    metrics_.clear();
+    if (!create_metrics(sim_info, metrics_)) {
+        std::cout << "External::create_entity() failed on create_metrics()" << std::endl;
+        return false;
+    }
+
+    ent_inters_.clear();
+    if (!create_ent_inters(sim_info, random, shapes, ent_inters_)) {
+        std::cout << "External::create_entity() failed on create_ent_inters()" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+void External::setup_logging() {
+    std::string output_type = get("output_type", mp_->params(), std::string("all"));
+
+    mp_->create_log_dir();
+    bool enable_log =
+        output_type.find("all") != std::string::npos ||
+        output_type.find("frames") != std::string::npos;
+
+    log_->set_enable_log(enable_log);
+    log_->init(mp_->log_dir(), Log::WRITE);
 }
 
 bool External::step(double t) {
@@ -138,14 +207,11 @@ bool External::step(double t) {
     this->call_update_contacts(t);
 
     mutex.lock();
-    // do all the scrimmage updates (e.g., step_autonomy, step controller, etc)
-    // incorporating motion_dt_
+
+    ////////////////////////////////////////////////////////////
+    // run main loops of plugins
+    ////////////////////////////////////////////////////////////
     for (AutonomyPtr autonomy : entity_->autonomies()) {
-        for (SubscriberBasePtr &sub : autonomy->subs()) {
-            for (auto msg : sub->pop_msgs<MessageBase>()) {
-                sub->accept(msg);
-            }
-        }
         autonomy->step_autonomy(t, dt);
     }
 
@@ -155,35 +221,37 @@ bool External::step(double t) {
     double motion_dt = dt / num_steps;
     double temp_t = t - dt;
     for (int i = 0; i < num_steps; i++) {
-        for (ControllerPtr &ctrl : entity_->controllers()) {
-            for (SubscriberBasePtr &sub : ctrl->subs()) {
-                for (auto msg : sub->pop_msgs<MessageBase>()) {
-                    sub->accept(msg);
-                }
-            }
-            ctrl->step(temp_t, motion_dt);
-        }
+        entity_->controller()->step(temp_t, motion_dt);
         temp_t += motion_dt;
     }
 
-    // do logging
-    log_->save_frame(create_frame(t, entity_->contacts()));
+    if (!ent_inters_.empty()) {
+        update_ents();
+        for (EntityInteractionPtr ent_inter : ent_inters_) {
+            ent_inter->step_entity_interaction(ents_, t, dt);
+        }
+    }
+
+    for (MetricsPtr metrics : metrics_) {
+        metrics->step_metrics(t, dt);
+    }
 
     send_messages();
 
     // shapes
     scrimmage_proto::Shapes shapes;
     shapes.set_time(t);
-    for (AutonomyPtr autonomy : entity_->autonomies()) {
-        for (auto autonomy_shape : autonomy->shapes()) {
-            // increase length of shapes by 1 (including mallocing a new object)
-            // return a pointer to the malloced object
-            scrimmage_proto::Shape *shape_at_end_of_shapes = shapes.add_shape();
+    auto add_shapes = [&](auto p) {
+        auto add_shape = [&](auto &shape) {*shapes.add_shape() = *shape;};
+        br::for_each(p->shapes(), add_shape);
+    };
 
-            // copy autonomy shape to list
-            *shape_at_end_of_shapes = *autonomy_shape;
-        }
-    }
+    br::for_each(entity_->autonomies(), add_shapes);
+    add_shapes(entity_->controller());
+    br::for_each(ent_inters_, add_shapes);
+    br::for_each(metrics_, add_shapes);
+
+    log_->save_frame(create_frame(t, entity_->contacts()));
     log_->save_shapes(shapes);
 
     mutex.unlock();
@@ -222,7 +290,34 @@ void External::call_update_contacts(double t) {
         for (auto &kv : *entity_->contacts()) {
             rtree->add(kv.second.state()->pos(), kv.second.id());
         }
+        update_ents();
     }
     mutex.unlock();
 }
+
+MissionParsePtr External::mp() {
+    return mp_;
+}
+
+void External::update_ents() {
+    if (ent_inters_.empty() && !metrics_.empty()) return;
+
+    auto &contacts = *entity_->contacts();
+
+    id_to_team_map_->clear();
+    id_to_ent_map_->clear();
+    ents_.clear();
+    for (auto &kv : contacts) {
+        ID &id = kv.second.id();
+        (*id_to_team_map_)[id.id()] = id.team_id();
+
+        auto ent = std::make_shared<Entity>();
+        ent->id() = id;
+        ent->state() = kv.second.state();
+        ents_.push_back(ent);
+
+        (*id_to_ent_map_)[id.id()] = ent;
+    }
+}
+
 } // namespace scrimmage

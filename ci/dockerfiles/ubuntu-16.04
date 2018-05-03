@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y python-pip python-numpy python-dev cmak
 RUN apt-get update && apt-get install -y git ninja-build
 RUN git clone https://github.com/openai/gym
 WORKDIR /root/gym
-RUN git checkout 0c91364cd4a7ea70f242a28b85c3aea2d74aa35a
+RUN git checkout v0.10.5
 RUN pip install -e '.[all]'
 WORKDIR /root
 
@@ -115,8 +115,9 @@ RUN /bin/bash -c "source /opt/ros/kinetic/setup.bash && \
     catkin_make && \
     source devel/setup.bash && \
     source ~/.scrimmage/setup.bash && \
-    catkin_make run_tests && \
-    catkin_test_results"
+    cd build && \
+    make tests && \
+    make test"
 
 # install python package and run tests
 WORKDIR /root/scrimmage/scrimmage/python
@@ -124,3 +125,7 @@ RUN pip install -e .
 
 WORKDIR /root/scrimmage/scrimmage
 RUN /bin/bash -c "source ~/.scrimmage/setup.bash && py.test python/tests"
+
+# Setup the scrimmage docker image to run as an executable
+ENTRYPOINT ["/root/scrimmage/scrimmage/ci/scripts/scrimmage-wrapper.sh"]
+CMD ["/root/scrimmage/scrimmage/missions/straight-no-gui.xml"]
